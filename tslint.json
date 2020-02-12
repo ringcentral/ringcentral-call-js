@@ -1,0 +1,27 @@
+{
+  "extends": "tslint:recommended",
+  "rules": {
+    "interface-name": [
+      false
+    ],
+    "max-line-length": [
+      false
+    ],
+    "variable-name": [
+      true,
+      "ban-keywords",
+      "check-format",
+      "allow-leading-underscore"
+    ],
+    "member-access": false,
+    "no-string-literal": false,
+    "no-reference": false,
+    "object-literal-shorthand": false,
+    "no-trailing-whitespace": [
+      true,
+      "ignore-comments"
+    ],
+    "array-type": false,
+    "ordered-imports": false
+  }
+}

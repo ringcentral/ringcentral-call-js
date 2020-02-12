@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "lib": [
+      "es6",
+      "dom"
+    ],
+    "sourceMap": true,
+    "declaration": true,
+    "outDir": "lib",
+    "resolveJsonModule": true
+  },
+  "files": ["src/index.ts", "src/Session.ts", "src/RingCentralCall.ts"],
+  "compileOnSave": true
+}
