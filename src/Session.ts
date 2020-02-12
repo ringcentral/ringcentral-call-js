@@ -2,9 +2,13 @@ import { EventEmitter } from 'events';
 import RingCentralWebPhone from 'ringcentral-web-phone';
 import { WebPhoneSession } from 'ringcentral-web-phone/lib/session';
 import { RingCentralCallControl } from 'ringcentral-call-control';
-import { Session as TelephonySession } from 'ringcentral-call-control/lib/Session';
+import { Session as TelephonySession, PartyStatusCode } from 'ringcentral-call-control/lib/Session';
 
 import { extractHeadersData } from './utils'
+
+export enum Events {
+  disconnected ='Disconnected',
+}
 
 export class Session extends EventEmitter {
   private _webphone: RingCentralWebPhone;
@@ -52,10 +56,36 @@ export class Session extends EventEmitter {
       console.log('progress...');
       this._setIdsFromWebPhoneSessionHeaders(incomingResponse.headers);
     });
+    this.webphoneSession.on('terminated', () => {
+      if (!this.telephonySession) {
+        // @ts-ignore
+        this.emit(Events.disconnected);
+        this._webphoneSession = null;
+        return;
+      }
+      // TODO: clean listeners
+      this._webphoneSession = null;
+    })
   }
 
   _onNewTelephonySession() {
-    this._telephonySessionId = this._telephonySession.id;
+    this._telephonySessionId = this.telephonySession.id;
+     // @ts-ignore
+    this.telephonySession.on('status', () => {
+      const party = this.telephonySession.party;
+      if (
+        party &&
+        party.status.code === PartyStatusCode.disconnected
+      ) {
+        if (!this._webphoneSession) {
+          // @ts-ignore
+          this.emit(Events.disconnected);
+          this._telephonySession = null;
+          return;
+        }
+        this._telephonySession = null;
+      }
+    })
   }
 
   _setIdsFromWebPhoneSessionHeaders(headers) {
@@ -73,13 +103,16 @@ export class Session extends EventEmitter {
 
   setTelephonySession(telephonySession) {
     this._telephonySession = telephonySession;
+    this._onNewTelephonySession();
   }
 
   setWebphoneSession(webphoneSession) {
     this._webphoneSession = webphoneSession;
+    this._onNewWebPhoneSession();
   }
 
   dispose() {
+    // TODO
     // @ts-ignore
     this.removeAllListeners()
   }

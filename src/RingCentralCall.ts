@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import RingCentralWebPhone from 'ringcentral-web-phone';
 import { RingCentralCallControl } from 'ringcentral-call-control';
-import { Session } from './Session';
+import { Session, Events as SessionEvents } from './Session';
 
 import { extractHeadersData } from './utils'
 
@@ -29,13 +29,8 @@ export class RingCentralCall extends EventEmitter {
     this._sessions = [];
 
     // @ts-ignore
-    this._activeCallControl.on('new', (telephonySession) => {
-      this._onNewTelephonySession(telephonySession);
-    });
-
-    this._webphone.userAgent.on('invite', (webphoneSession) => {
-      this._onWebPhoneSessionRing(webphoneSession)
-    });
+    this._activeCallControl.on('new', this._onNewTelephonySession);
+    this._webphone.userAgent.on('invite', this._onWebPhoneSessionRing);
   }
 
   async makeCall(params : MakeCallParams) {
@@ -62,11 +57,15 @@ export class RingCentralCall extends EventEmitter {
       webphone: this.webphone,
       activeCallControl: this.activeCallControl,
     });
+    // @ts-ignore
+    newSession.on(SessionEvents.disconnected, () => {
+      this._onSessionDisconnected(newSession);
+    });
     this._sessions.push(newSession);
     return newSession;
   }
 
-  _onWebPhoneSessionRing(webphoneSession) {
+  _onWebPhoneSessionRing = (webphoneSession) => {
     const [partyData] = extractHeadersData(webphoneSession.request.headers);
     let existedSession;
     if (partyData && partyData.sessionId) {
@@ -79,7 +78,7 @@ export class RingCentralCall extends EventEmitter {
     this._onNewWebPhoneSession(webphoneSession);
   }
 
-  _onNewTelephonySession(telephonySession) {
+  _onNewTelephonySession = (telephonySession) => {
     const existedSession =
       this.sessions.find(s => s.telephonySessionId === telephonySession.id);
     if (existedSession) {
@@ -91,11 +90,20 @@ export class RingCentralCall extends EventEmitter {
       webphone: this.webphone,
       activeCallControl: this.activeCallControl,
     });
+    // @ts-ignore
+    newSession.on(SessionEvents.disconnected, () => {
+      this._onSessionDisconnected(newSession);
+    });
     this._sessions.push(newSession);
     return newSession;
   }
 
+  _onSessionDisconnected(session) {
+    this._sessions = this._sessions.filter(s => s !== session);
+  }
+
   async dispose() {
+    // TODO
     this._webphone = null;
     this._activeCallControl = null;
   }
