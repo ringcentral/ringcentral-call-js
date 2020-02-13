@@ -1,3 +1,5 @@
+import { ReplyWithTextParams } from 'ringcentral-call-control/lib/Session';
+
 const STRING_CAMELIZE_REGEXP_1 = /(\-|\_|\.|\s)+(.)?/g;
 const STRING_CAMELIZE_REGEXP_2 = /(^|\/)([A-Z])/g;
 
@@ -50,4 +52,13 @@ export function extractHeadersData(headers) {
   }
 
   return [partyData, callId];
+}
+
+export function getWebphoneReplyMessageOption(params: ReplyWithTextParams) {
+  return {
+    replyText: params.replyWithText,
+    timeValue: params.replyWithPattern.time,
+    timeUnits: params.replyWithPattern.timeUnit,
+    // callbackDirection: params.replyWithPattern.pattern;
+  };
 }

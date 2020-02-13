@@ -188,7 +188,7 @@ $(function() {
     });
     $deviceRefresh.on('click', function(e) {
       e.preventDefault();
-      rcCallControl.refreshDevices().then(function () {
+      rcCall.activeCallControl.refreshDevices().then(function () {
         refreshDevices();
       });
     });
@@ -266,10 +266,10 @@ $(function() {
     refreshPartyInfo();
 
     $modal.find('.hangup').on('click', function() {
-      session.telephonySession.drop();
+      session.hangup();
     });
     $modal.find('.mute').on('click', function() {
-      session.telephonySession.mute().then(function() {
+      session.mute().then(function() {
         console.log('muted');
       }).catch(function(e) {
           console.error('mute failed', e.stack || e);
@@ -277,46 +277,38 @@ $(function() {
     });
 
     $modal.find('.unmute').on('click', function() {
-      session.telephonySession.unmute().then(function() {
+      session.unmute().then(function() {
         console.log('unmuted');
       }).catch(function(e) {
           console.error('unmute failed', e.stack || e);
       });
     });
     $modal.find('.hold').on('click', function() {
-      session.telephonySession.hold().then(function() {
+      session.hold().then(function() {
         console.log('Holding');
       }).catch(function(e) {
           console.error('Holding failed', e.stack || e);
       });
     });
     $modal.find('.unhold').on('click', function() {
-      session.telephonySession.unhold().then(function() {
+      session.unhold().then(function() {
         console.log('UnHolding');
       }).catch(function(e) {
           console.error('UnHolding failed', e.stack || e);
       });
     });
     $modal.find('.startRecord').on('click', function() {
-      if (session.telephonySession.recordings.length === 0) {
-        session.telephonySession.createRecord().catch(function(e) {
-            console.error('create record failed', e.stack || e);
-        });
-        return;
-      }
-      var recording = session.recordings[0];
-      session.telephonySession.resumeRecord(recording.id).then(function(result) {
-        console.log('recording resumed');
-      }).catch(function(e) {
-        console.error('resume record failed', e.stack || e);
+      const recordingId = session.recordings[0] && session.recordings[0].id;
+      session.startRecord({ recordingId }).catch(function(e) {
+        console.error('create record failed', e.stack || e);
       });
     });
     $modal.find('.stopRecord').on('click', function() {
-      if (session.telephonySession.recordings.length === 0) {
+      if (session.recordings.length === 0) {
         return;
       }
-      var recording = session.telephonySession.recordings[0];
-      session.telephonySession.pauseRecord(recording.id).then(function() {
+      const recordingId = session.recordings[0] && session.recordings[0].id;
+      session.stopRecord({ recordingId }).then(function() {
         console.log('recording stopped');
       }).catch(function(e) {
         console.error('stop recording failed', e.stack || e);
@@ -326,20 +318,14 @@ $(function() {
       e.preventDefault();
       e.stopPropagation();
       var phoneNumber = $transfer.val();
-      var params = {};
-      if (phoneNumber.length > 5) {
-        params.phoneNumber = phoneNumber;
-      } else {
-        params.extensionNumber = phoneNumber;
-      }
-      session.telephonySession.transfer(params).then(function () {
+      session.transfer(phoneNumber).then(function () {
         console.log('transfered');
       }).catch(function(e) {
         console.error('transfer failed', e.stack || e);
       });
     });
     session.on('status', function() {
-      if (session.party.status.code === 'Disconnected') {
+      if (session.status === 'Disconnected') {
         $modal.modal('hide');
         return;
       }
@@ -353,16 +339,23 @@ $(function() {
     var $to = $modal.find('input[name=to]').eq(0);
     var $forwardForm = $modal.find('.forward-form').eq(0);
     var $forward = $modal.find('input[name=forward]').eq(0);
+    var $answer = $modal.find('.answer').eq(0);
     var party = session.party;
     $from.val(party.from.phoneNumber || party.from.extensionNumber);
     $to.val(party.to.phoneNumber || party.to.extensionNumber);
 
     $modal.find('.toVoicemail').on('click', function() {
-      session.telephonySession.toVoicemail();
+      session.toVoicemail();
     });
-    $modal.find('.answer').on('click', function() {
+    if (!session.webphoneSessionConnected) {
+      $answer.hide();
+      session.on('webphoneSessionConnected', function () {
+        $answer.show();
+      });
+    }
+    $answer.on('click', function() {
       if (session.webphoneSession) {
-        session.webphoneSession.accept();
+        session.answer();
       }
     });
     $forwardForm.on('submit', function (e) {
@@ -410,7 +403,7 @@ $(function() {
 
   function show3LeggedLogin(server, appKey, appSecret) {
     rcsdk = new RingCentral.SDK({
-      cachePrefix: 'rc-call-control',
+      cachePrefix: 'rc-call',
       appKey: appKey,
       appSecret: appSecret,
       server: server,
