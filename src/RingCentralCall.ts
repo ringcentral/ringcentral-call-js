@@ -67,35 +67,39 @@ export class RingCentralCall extends EventEmitter {
 
   _onWebPhoneSessionRing = (webphoneSession) => {
     const [partyData] = extractHeadersData(webphoneSession.request.headers);
-    let existedSession;
+    let session;
     if (partyData && partyData.sessionId) {
-      existedSession = this.sessions.find(s => s.telephonySessionId === partyData.sessionId);
+      session = this.sessions.find(s => s.telephonySessionId === partyData.sessionId);
     }
-    if (existedSession) {
-      existedSession.setWebphoneSession(webphoneSession);
+    if (session) {
+      session.setWebphoneSession(webphoneSession);
       return;
     }
-    this._onNewWebPhoneSession(webphoneSession);
+    session = this._onNewWebPhoneSession(webphoneSession);
+    // @ts-ignore
+    this.emit('new', session);
   }
 
   _onNewTelephonySession = (telephonySession) => {
-    const existedSession =
+    let session =
       this.sessions.find(s => s.telephonySessionId === telephonySession.id);
-    if (existedSession) {
-      existedSession.setTelephonySession(telephonySession);
-      return existedSession;
+    if (session) {
+      session.setTelephonySession(telephonySession);
+      return session;
     }
-    const newSession = new Session({
+    session = new Session({
       telephonySession,
       webphone: this.webphone,
       activeCallControl: this.activeCallControl,
     });
     // @ts-ignore
-    newSession.on(SessionEvents.disconnected, () => {
-      this._onSessionDisconnected(newSession);
+    session.on(SessionEvents.disconnected, () => {
+      this._onSessionDisconnected(session);
     });
-    this._sessions.push(newSession);
-    return newSession;
+    this._sessions.push(session);
+    // @ts-ignore
+    this.emit('new', session);
+    return session;
   }
 
   _onSessionDisconnected(session) {

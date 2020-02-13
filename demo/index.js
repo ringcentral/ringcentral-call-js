@@ -57,23 +57,23 @@ $(function() {
   }
 
   function initWebPhone({ appKey }) {
-    platform.post('/client-info/sip-provision', {
+    return platform.post('/client-info/sip-provision', {
       sipInfo: [{transport: 'WSS'}]
     }).then(function(res) {
       var sipProvision = res.json()
       rcWebPhone = new RingCentral.WebPhone(sipProvision, {
         appKey,
-        appName: 'RingCentral Calling Demo',
+        appName: 'RingCentral Call Demo',
         appVersion: '0.0.1',
         logLevel: 2,
         uuid: sipProvision.device.extension.id,
       })
+      window.addEventListener('unload', function () {
+        if (rcWebPhone) {
+          rcWebPhone.userAgent.stop();
+        }
+      });
       initCallSDK()
-    });
-    window.addEventListener('unload', function () {
-      if (rcWebPhone) {
-        rcWebPhone.userAgent.stop();
-      }
     });
   }
 
@@ -96,7 +96,7 @@ $(function() {
     var $fromNumberRow = $callPage.find('#from-number-row').eq(0);
     function refreshDevices() {
       $deviceSelect.empty();
-      var devices = rcCallControl.devices.filter(function(d) { return d.status === 'Online' });
+      var devices = rcCall.activeCallControl.devices.filter(function(d) { return d.status === 'Online' });
       if (devices.length === 0) {
         $deviceSelect.append('<option value="">No device availiable</option>');
         return;
@@ -121,17 +121,17 @@ $(function() {
       refreshDevices();
       refreshFromNumbers();
       refreshCallList();
-      rcCallControl.sessions.forEach(function(session) {
+      rcCall.sessions.forEach(function(session) {
         session.on('status', function() {
           refreshCallList();
         });
       });
       $('.modal').modal('hide');
     }
-    if (rcCallControl.ready) {
+    if (rcCall.activeCallControl.ready) {
       onInitializedEvent();
     } else {
-      rcCallControl.on('initialized', onInitializedEvent);
+      rcCall.activeCallControl.on('initialized', onInitializedEvent);
     }
     if ($callType.val() === 'webphone') {
       $deviceRow.hide();
@@ -147,7 +147,7 @@ $(function() {
         $fromNumberRow.hide();
       }
     })
-    rcCallControl.on('new', function(session) {
+    rcCall.on('new', function(session) {
       // console.log('new');
       // console.log(JSON.stringify(session.data, null, 2));
       refreshCallList();
@@ -178,14 +178,13 @@ $(function() {
         toNumber: phoneNumber,
         fromNumber,
         deviceId,
-      })
-      // rcCallControl.createCall(deviceId, params).then(function(session) {
-      //   showCallControlModal(session);
-      //   refreshCallList();
-      //   session.on('status', function() {
-      //     refreshCallList();
-      //   });
-      // });
+      }).then(function (session) {
+        showCallControlModal(session);
+        refreshCallList();
+        session.on('status', function() {
+          refreshCallList();
+        });
+      });
     });
     $deviceRefresh.on('click', function(e) {
       e.preventDefault();
@@ -209,13 +208,13 @@ $(function() {
       if (!sessionId) {
         return;
       }
-      var session = rcCallControl.sessions.find(s => s.id === sessionId);
+      var session = rcCall.sessions.find(s => s.id === sessionId);
       if (!session) {
         return;
       }
+      var status = session.status;
       var party = session.party;
-      var status = party.status.code;
-      if (status === 'VoiceMail' || status === 'Disconnected') {
+      if (status === 'VoiceMail' || status === 'Disconnected' || !party) {
         return;
       }
       if ((status === 'Proceeding' || status === 'Setup') && party.direction === 'Inbound') {
@@ -229,7 +228,7 @@ $(function() {
   function refreshCallList() {
     var $callList = $callPage.find('.call-list').eq(0);
     $callList.empty();
-    rcCallControl.sessions.forEach(function (session) {
+    rcCall.sessions.forEach(function (session) {
       if (!session.party) {
         return;
       }
@@ -254,16 +253,23 @@ $(function() {
     var $myStatus = $modal.find('input[name=myStatus]').eq(0);
     var $otherStatus = $modal.find('input[name=otherStatus]').eq(0);
 
-    var party = session.party;
-    $myStatus.val(party.status.code);
-    $otherStatus.val(session.otherParties.map(p => p.status.code).join(','));
-    $from.val(party.from.phoneNumber || party.from.extensionNumber);
-    $to.val(party.to.phoneNumber || party.to.extensionNumber);
+    function refreshPartyInfo() {
+      var party = session.party;
+      if (!party) {
+        return;
+      }
+      $myStatus.val(party.status.code);
+      $otherStatus.val(session.otherParties.map(p => p.status.code).join(','));
+      $from.val(party.from.phoneNumber || party.from.extensionNumber);
+      $to.val(party.to.phoneNumber || party.to.extensionNumber);
+    }
+    refreshPartyInfo();
+
     $modal.find('.hangup').on('click', function() {
-      session.drop();
+      session.telephonySession.drop();
     });
     $modal.find('.mute').on('click', function() {
-      session.mute().then(function() {
+      session.telephonySession.mute().then(function() {
         console.log('muted');
       }).catch(function(e) {
           console.error('mute failed', e.stack || e);
@@ -271,46 +277,46 @@ $(function() {
     });
 
     $modal.find('.unmute').on('click', function() {
-      session.unmute().then(function() {
+      session.telephonySession.unmute().then(function() {
         console.log('unmuted');
       }).catch(function(e) {
           console.error('unmute failed', e.stack || e);
       });
     });
     $modal.find('.hold').on('click', function() {
-      session.hold().then(function() {
+      session.telephonySession.hold().then(function() {
         console.log('Holding');
       }).catch(function(e) {
           console.error('Holding failed', e.stack || e);
       });
     });
     $modal.find('.unhold').on('click', function() {
-      session.unhold().then(function() {
+      session.telephonySession.unhold().then(function() {
         console.log('UnHolding');
       }).catch(function(e) {
           console.error('UnHolding failed', e.stack || e);
       });
     });
     $modal.find('.startRecord').on('click', function() {
-      if (session.recordings.length === 0) {
-        session.createRecord().catch(function(e) {
+      if (session.telephonySession.recordings.length === 0) {
+        session.telephonySession.createRecord().catch(function(e) {
             console.error('create record failed', e.stack || e);
         });
         return;
       }
       var recording = session.recordings[0];
-      session.resumeRecord(recording.id).then(function(result) {
+      session.telephonySession.resumeRecord(recording.id).then(function(result) {
         console.log('recording resumed');
       }).catch(function(e) {
         console.error('resume record failed', e.stack || e);
       });
     });
     $modal.find('.stopRecord').on('click', function() {
-      if (session.recordings.length === 0) {
+      if (session.telephonySession.recordings.length === 0) {
         return;
       }
-      var recording = session.recordings[0];
-      session.pauseRecord(recording.id).then(function() {
+      var recording = session.telephonySession.recordings[0];
+      session.telephonySession.pauseRecord(recording.id).then(function() {
         console.log('recording stopped');
       }).catch(function(e) {
         console.error('stop recording failed', e.stack || e);
@@ -326,7 +332,7 @@ $(function() {
       } else {
         params.extensionNumber = phoneNumber;
       }
-      session.transfer(params).then(function () {
+      session.telephonySession.transfer(params).then(function () {
         console.log('transfered');
       }).catch(function(e) {
         console.error('transfer failed', e.stack || e);
@@ -337,8 +343,7 @@ $(function() {
         $modal.modal('hide');
         return;
       }
-      $myStatus.val(session.party.status.code);
-      $otherStatus.val(session.otherParties.map(p => p.status.code).join(','));
+      refreshPartyInfo();
     });
   }
 
@@ -353,7 +358,12 @@ $(function() {
     $to.val(party.to.phoneNumber || party.to.extensionNumber);
 
     $modal.find('.toVoicemail').on('click', function() {
-      session.toVoicemail();
+      session.telephonySession.toVoicemail();
+    });
+    $modal.find('.answer').on('click', function() {
+      if (session.webphoneSession) {
+        session.webphoneSession.accept();
+      }
     });
     $forwardForm.on('submit', function (e) {
       e.preventDefault();
@@ -365,22 +375,22 @@ $(function() {
       } else {
         params.extensionNumber = phoneNumber;
       }
-      session.forward(params).then(function () {
+      session.telephonySession.forward(params).then(function () {
         console.log('forwarded');
       }).catch(function(e) {
         console.error('forward failed', e.stack || e);
       });
     });
     var hasAnswered = false;
-    session.on('status', function() {
+    session.on('status', function({ party }) {
       if (
-        session.party.status.code === 'Disconnected' ||
-        session.party.status.code === 'VoiceMail'
+        party.status.code === 'Disconnected' ||
+        party.status.code === 'VoiceMail'
       ) {
         $modal.modal('hide');
         return;
       }
-      if (!hasAnswered && session.party.status.code === 'Answered') {
+      if (!hasAnswered && party.status.code === 'Answered') {
         hasAnswered = true;
         $modal.modal('hide');
         showCallControlModal(session);
@@ -393,8 +403,9 @@ $(function() {
     localStorage.setItem('rcCallControlAppKey', appKey || '');
     localStorage.setItem('rcCallControlAppSecret', appSecret || '');
     initCallControl();
-    initWebPhone({ appKey });
-    showCallPage();
+    initWebPhone({ appKey }).then(function () {
+      showCallPage();
+    }); 
   }
 
   function show3LeggedLogin(server, appKey, appSecret) {

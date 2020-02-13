@@ -71,11 +71,13 @@ export class Session extends EventEmitter {
   _onNewTelephonySession() {
     this._telephonySessionId = this.telephonySession.id;
      // @ts-ignore
-    this.telephonySession.on('status', () => {
-      const party = this.telephonySession.party;
+    this.telephonySession.on('status', ({ party }) => {
+      const myParty = this.telephonySession.party;
+      // @ts-ignore
+      this.emit('status', { party });
       if (
-        party &&
-        party.status.code === PartyStatusCode.disconnected
+        myParty &&
+        myParty.status.code === PartyStatusCode.disconnected
       ) {
         if (!this._webphoneSession) {
           // @ts-ignore
@@ -127,5 +129,30 @@ export class Session extends EventEmitter {
 
   get telephonySessionId() {
     return this._telephonySessionId;
+  }
+
+  get id() {
+    return this._telephonySessionId;
+  }
+
+  get status() {
+    if (!this.party) {
+      return 'Proceeding';
+    }
+    return this.party.status.code;
+  }
+
+  get party() {
+    if (!this._telephonySession) {
+      return null;
+    }
+    return this._telephonySession.party;
+  }
+
+  get otherParties() {
+    if (!this._telephonySession) {
+      return null;
+    }
+    return this._telephonySession.otherParties;
   }
 }
