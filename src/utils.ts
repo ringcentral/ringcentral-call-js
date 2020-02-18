@@ -1,4 +1,4 @@
-import { ReplyWithTextParams } from 'ringcentral-call-control/lib/Session';
+import { ReplyWithTextParams, ReplyWithPattern } from 'ringcentral-call-control/lib/Session';
 
 const STRING_CAMELIZE_REGEXP_1 = /(\-|\_|\.|\s)+(.)?/g;
 const STRING_CAMELIZE_REGEXP_2 = /(^|\/)([A-Z])/g;
@@ -54,11 +54,47 @@ export function extractHeadersData(headers) {
   return [partyData, callId];
 }
 
+const WEBPHONE_REPLY_TIMEUNIT = {
+  Minute: 0,
+  Hour: 1,
+  Day: 2
+};
+
+const WEBPHONE_REPLY_TYPE = {
+  customMessage: 0,
+  callBack: 1,
+  onMyWay: 2,
+  inAMeeting: 5,
+};
+
 export function getWebphoneReplyMessageOption(params: ReplyWithTextParams) {
+  if (params.replyWithText) {
+    return {
+      replyType: WEBPHONE_REPLY_TYPE.customMessage,
+      replyText: params.replyWithText,
+    };
+  }
+  if (params.replyWithPattern.pattern === ReplyWithPattern.onMyWay) {
+    return {
+      replyType: WEBPHONE_REPLY_TYPE.onMyWay,
+    };
+  }
+  if (params.replyWithPattern.pattern === ReplyWithPattern.inAMeeting) {
+    return {
+      replyType: WEBPHONE_REPLY_TYPE.inAMeeting,
+    };
+  }
+  let replyType = WEBPHONE_REPLY_TYPE.callBack
+  let callbackDirection;
+  if (params.replyWithPattern.pattern.indexOf('CallMe')) {
+    callbackDirection = 1;
+  } else {
+    callbackDirection = 0;
+  }
   return {
-    replyText: params.replyWithText,
+    replyType,
     timeValue: params.replyWithPattern.time,
-    timeUnits: params.replyWithPattern.timeUnit,
-    // callbackDirection: params.replyWithPattern.pattern;
+    timeUnits: WEBPHONE_REPLY_TIMEUNIT[params.replyWithPattern.timeUnit],
+    callbackDirection,
   };
 }
