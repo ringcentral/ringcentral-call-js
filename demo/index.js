@@ -155,9 +155,7 @@ $(function() {
         // console.log(event);
         refreshCallList();
       });
-      var party = session.party;
-      var status = party.status.code;
-      if (party.direction === 'Inbound' && (status === 'Proceeding' || status === 'Setup')) {
+      if (session.direction === 'Inbound') {
         showIncomingCallModal(session);
       }
     });
@@ -234,10 +232,10 @@ $(function() {
       }
       $callList.append(
         '<tr data-id="' + session.id + '">' +
-          '<td>' + session.party.direction + '</td>' +
-          '<td>' + (session.party.from.phoneNumber || session.party.from.extensionNumber) + '</td>' +
-          '<td>' + (session.party.to.phoneNumber || session.party.to.extensionNumber) + '</td>' +
-          '<td>' + session.party.status.code + '</td>' +
+          '<td>' + session.direction + '</td>' +
+          '<td>' + session.from.phoneNumber + '</td>' +
+          '<td>' + session.to.phoneNumber + '</td>' +
+          '<td>' + session.status + '</td>' +
           '<td>' + session.otherParties.map(p => p.status.code).join(',') + '</td>' +
         '</tr>'
       )
@@ -254,14 +252,10 @@ $(function() {
     var $otherStatus = $modal.find('input[name=otherStatus]').eq(0);
 
     function refreshPartyInfo() {
-      var party = session.party;
-      if (!party) {
-        return;
-      }
-      $myStatus.val(party.status.code);
+      $from.val(session.from.phoneNumber);
+      $to.val(session.to.phoneNumber);
+      $myStatus.val(session.status);
       $otherStatus.val(session.otherParties.map(p => p.status.code).join(','));
-      $from.val(party.from.phoneNumber || party.from.extensionNumber);
-      $to.val(party.to.phoneNumber || party.to.extensionNumber);
     }
     refreshPartyInfo();
 
@@ -340,9 +334,8 @@ $(function() {
     var $forwardForm = $modal.find('.forward-form').eq(0);
     var $forward = $modal.find('input[name=forward]').eq(0);
     var $answer = $modal.find('.answer').eq(0);
-    var party = session.party;
-    $from.val(party.from.phoneNumber || party.from.extensionNumber);
-    $to.val(party.to.phoneNumber || party.to.extensionNumber);
+    $from.val(session.from.phoneNumber);
+    $to.val(session.to.phoneNumber);
 
     $modal.find('.toVoicemail').on('click', function() {
       session.toVoicemail();
@@ -375,15 +368,15 @@ $(function() {
       });
     });
     var hasAnswered = false;
-    session.on('status', function({ party }) {
+    session.on('status', function() {
       if (
-        party.status.code === 'Disconnected' ||
-        party.status.code === 'VoiceMail'
+        session.status === 'Disconnected' ||
+        session.status === 'VoiceMail'
       ) {
         $modal.modal('hide');
         return;
       }
-      if (!hasAnswered && party.status.code === 'Answered') {
+      if (!hasAnswered && session.status === 'Answered') {
         hasAnswered = true;
         $modal.modal('hide');
         showCallControlModal(session);

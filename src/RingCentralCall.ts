@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import RingCentralWebPhone from 'ringcentral-web-phone';
 import { RingCentralCallControl } from 'ringcentral-call-control';
-import { Session, Events as SessionEvents } from './Session';
+import { Session, events as sessionEvents, directions } from './Session';
 
 import { extractHeadersData } from './utils'
 
@@ -39,6 +39,8 @@ export class RingCentralCall extends EventEmitter {
         fromNumber: params.fromNumber,
         homeCountryId: params.homeContryId,
       } as any);
+      // @ts-ignore
+      webphoneSession.__rc_direction = directions.OUTBOUND;
       return this._onNewWebPhoneSession(webphoneSession);
     }
     const callParams : any = {}
@@ -54,11 +56,9 @@ export class RingCentralCall extends EventEmitter {
   _onNewWebPhoneSession(webphoneSession) {
     const newSession = new Session({
       webphoneSession,
-      webphone: this.webphone,
-      activeCallControl: this.activeCallControl,
     });
     // @ts-ignore
-    newSession.on(SessionEvents.disconnected, () => {
+    newSession.on(sessionEvents.DISCONNECTED, () => {
       this._onSessionDisconnected(newSession);
     });
     this._sessions.push(newSession);
@@ -71,6 +71,8 @@ export class RingCentralCall extends EventEmitter {
     if (partyData && partyData.sessionId) {
       session = this.sessions.find(s => s.telephonySessionId === partyData.sessionId);
     }
+    // @ts-ignore
+    webphoneSession.__rc_direction = directions.INBOUND;
     if (session) {
       session.setWebphoneSession(webphoneSession);
       return;
@@ -89,11 +91,9 @@ export class RingCentralCall extends EventEmitter {
     }
     session = new Session({
       telephonySession,
-      webphone: this.webphone,
-      activeCallControl: this.activeCallControl,
     });
     // @ts-ignore
-    session.on(SessionEvents.disconnected, () => {
+    session.on(sessionEvents.DISCONNECTED, () => {
       this._onSessionDisconnected(session);
     });
     this._sessions.push(session);

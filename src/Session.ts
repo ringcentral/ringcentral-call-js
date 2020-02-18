@@ -11,37 +11,36 @@ import {
 
 import { extractHeadersData, getWebphoneReplyMessageOption } from './utils'
 
-export enum Events {
-  disconnected ='disconnected',
-  status = 'status',
-}
+export enum events {
+  DISCONNECTED ='disconnected',
+  STATUS = 'status',
+};
+
+export enum directions {
+  OUTBOUND = 'Outbound',
+  INBOUND = 'Inbound',
+};
 
 export class Session extends EventEmitter {
-  private _webphone: RingCentralWebPhone;
-  private _activeCallControl: RingCentralCallControl;
   private _webphoneSession: WebPhoneSession;
   private _telephonySession: TelephonySession;
   private _telephonySessionId: string;
   private _activeCallId: string;
   private _webphoneSessionConnected: boolean = false;
+  private _status: PartyStatusCode;
 
   constructor({
     webphoneSession,
     telephonySession,
-    webphone,
-    activeCallControl,
   } : {
     webphoneSession?: WebPhoneSession;
     telephonySession?: TelephonySession;
-    webphone: RingCentralWebPhone,
-    activeCallControl: RingCentralCallControl,
   }) {
     super();
 
-    this._webphone = webphone;
-    this._activeCallControl = activeCallControl;
     this._webphoneSession = webphoneSession;
     this._telephonySession = telephonySession;
+    this._status = PartyStatusCode.setup;
 
     if (this._webphoneSession) {
       this._onNewWebPhoneSession();
@@ -58,15 +57,18 @@ export class Session extends EventEmitter {
     this.webphoneSession.on('accepted', (incomingResponse) => {
       console.log('accepted');
       this._setIdsFromWebPhoneSessionHeaders(incomingResponse.headers);
+      this._status = PartyStatusCode.answered;
     });
     this.webphoneSession.on('progress', (incomingResponse) => {
       console.log('progress...');
       this._setIdsFromWebPhoneSessionHeaders(incomingResponse.headers);
+      this._status = PartyStatusCode.proceeding;
     });
     this.webphoneSession.on('terminated', () => {
+      this._status = PartyStatusCode.disconnected;
       if (!this.telephonySession) {
         // @ts-ignore
-        this.emit(Events.disconnected);
+        this.emit(events.DISCONNECTED);
         this._webphoneSession = null;
         return;
       }
@@ -80,18 +82,24 @@ export class Session extends EventEmitter {
 
   _onNewTelephonySession() {
     this._telephonySessionId = this.telephonySession.id;
+    if (this.telephonySession.party) {
+      this._status = this.telephonySession.party.status.code;
+    }
      // @ts-ignore
     this.telephonySession.on('status', ({ party }) => {
       const myParty = this.telephonySession.party;
+      if (myParty) {
+        this._status = this.telephonySession.party.status.code;
+      }
       // @ts-ignore
-      this.emit('status', { party });
+      this.emit(events.STATUS, { party, status: myParty.status.code });
       if (
         myParty &&
         myParty.status.code === PartyStatusCode.disconnected
       ) {
         if (!this._webphoneSession) {
           // @ts-ignore
-          this.emit(Events.disconnected);
+          this.emit(events.DISCONNECTED);
           this._telephonySession = null;
           return;
         }
@@ -150,10 +158,17 @@ export class Session extends EventEmitter {
   }
 
   get status() {
-    if (!this.party) {
-      return 'Proceeding';
+    return this._status;
+  }
+
+  get direction() {
+    if (this.party) {
+      return this.party.direction;
     }
-    return this.party.status.code;
+    if (this.webphoneSession) {
+      // @ts-ignore
+      return webphoneSession.__rc_direction;
+    }
   }
 
   get party() {
@@ -165,7 +180,7 @@ export class Session extends EventEmitter {
 
   get otherParties() {
     if (!this._telephonySession) {
-      return null;
+      return [];
     }
     return this._telephonySession.otherParties;
   }
@@ -177,11 +192,37 @@ export class Session extends EventEmitter {
     return this._telephonySession.recordings;
   }
 
-  hangup() {
-    if (this._telephonySession) {
-      return this._telephonySession.drop();
+  get from() {
+    if (this.party) {
+      return this.party.from;
     }
-    return this._webphoneSession.terminate();
+    if (this.webphoneSession) {
+      return {
+        phoneNumber: this.webphoneSession.request.from.uri.user,
+        name: this.webphoneSession.request.from.displayName,
+      };
+    }
+    return {};
+  }
+
+  get to() {
+    if (this.party) {
+      return this.party.to;
+    }
+    if (this.webphoneSession) {
+      return {
+        phoneNumber: this.webphoneSession.request.to.uri.user,
+        name: this.webphoneSession.request.to.displayName,
+      };
+    }
+    return {};
+  }
+
+  hangup() {
+    if (this._webphoneSession) {
+      return this._webphoneSession.terminate();
+    }
+    return this._telephonySession.drop();
   }
 
   hold() {
@@ -227,7 +268,7 @@ export class Session extends EventEmitter {
     return this._webphoneSession.replyWithMessage(webphoneReplyOption as any);
   }
 
-  forward(forwardNumber, acceptOptions?: any, transferOptions?: any) {
+  forward(forwardNumber: string, acceptOptions?: any, transferOptions?: any) {
     if (this._telephonySession) {
       const params : any = {};
       if (forwardNumber.length > 5) {
@@ -241,7 +282,7 @@ export class Session extends EventEmitter {
     return this._webphoneSession.forward(forwardNumber, acceptOptions, transferOptions);
   }
 
-  transfer(transferNumber, transferOptions?: any) {
+  transfer(transferNumber: string, transferOptions?: any) {
     if (this._telephonySession) {
       const params : any = {};
       if (transferNumber.length > 5) {
@@ -269,7 +310,7 @@ export class Session extends EventEmitter {
     return this._webphoneSession.flip(callFlipId);
   }
 
-  mute() {
+  async mute() {
     if (this._webphoneSession) {
       this._webphoneSession.mute();
     }
@@ -278,7 +319,7 @@ export class Session extends EventEmitter {
     }
   }
 
-  unmute() {
+  async unmute() {
     if (this._webphoneSession) {
       this._webphoneSession.unmute();
     }
