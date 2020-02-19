@@ -23,14 +23,10 @@ export class RingCentralCall extends EventEmitter {
     activeCallControl,
   }) {
     super();
-    //
-    this._webphone = webphone;
-    this._activeCallControl = activeCallControl;
     this._sessions = [];
 
-    // @ts-ignore
-    this._activeCallControl.on('new', this._onNewTelephonySession);
-    this._webphone.userAgent.on('invite', this._onWebPhoneSessionRing);
+    this.setWebphone(webphone);
+    this.setActiveCallControl(activeCallControl);
   }
 
   async makeCall(params : MakeCallParams) {
@@ -57,10 +53,13 @@ export class RingCentralCall extends EventEmitter {
     const newSession = new Session({
       webphoneSession,
     });
-    // @ts-ignore
-    newSession.on(sessionEvents.DISCONNECTED, () => {
+    const onSessionDisconnected = () => {
       this._onSessionDisconnected(newSession);
-    });
+      // @ts-ignore
+      newSession.removeListener(sessionEvents.DISCONNECTED, onSessionDisconnected);
+    };
+    // @ts-ignore
+    newSession.on(sessionEvents.DISCONNECTED, onSessionDisconnected);
     this._sessions.push(newSession);
     return newSession;
   }
@@ -92,10 +91,13 @@ export class RingCentralCall extends EventEmitter {
     session = new Session({
       telephonySession,
     });
-    // @ts-ignore
-    session.on(sessionEvents.DISCONNECTED, () => {
+    const onSessionDisconnected = () => {
       this._onSessionDisconnected(session);
-    });
+      // @ts-ignore
+      session.removeListener(sessionEvents.DISCONNECTED, onSessionDisconnected);
+    };
+    // @ts-ignore
+    session.on(sessionEvents.DISCONNECTED, onSessionDisconnected);
     this._sessions.push(session);
     // @ts-ignore
     this.emit('new', session);
@@ -104,12 +106,43 @@ export class RingCentralCall extends EventEmitter {
 
   _onSessionDisconnected(session) {
     this._sessions = this._sessions.filter(s => s !== session);
+    session.dispose();
+  }
+
+  setWebphone(webphone) {
+    this.clearWebphone();
+    this._webphone = webphone;
+    this._webphone.userAgent.on('invite', this._onWebPhoneSessionRing);
+  }
+
+  setActiveCallControl(activeCallControl) {
+    this.clearActiveCallControl();
+    this._activeCallControl = activeCallControl;
+    // @ts-ignore
+    this._activeCallControl.on('new', this._onNewTelephonySession);
+  }
+
+  clearWebphone() {
+    if (!this._webphone) {
+      return;
+    }
+    // @ts-ignore
+    this._webphone.userAgent.removeListener('invite', this._onWebPhoneSessionRing);
+    this._webphone = null;
+  }
+
+  clearActiveCallControl() {
+    if (!this._activeCallControl) {
+      return;
+    }
+    // @ts-ignore
+    this._activeCallControl.removeListener('new', this._onNewTelephonySession);
+    this._activeCallControl = null;
   }
 
   async dispose() {
-    // TODO
-    this._webphone = null;
-    this._activeCallControl = null;
+    this.clearWebphone();
+    this.clearActiveCallControl();
     // @ts-ignore
     this.removeAllListeners();
   }
