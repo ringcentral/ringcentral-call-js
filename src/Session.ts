@@ -1,12 +1,9 @@
 import { EventEmitter } from 'events';
-import RingCentralWebPhone from 'ringcentral-web-phone';
 import { WebPhoneSession } from 'ringcentral-web-phone/lib/session';
-import { RingCentralCallControl } from 'ringcentral-call-control';
 import {
   Session as TelephonySession,
   PartyStatusCode,
   ReplyWithTextParams,
-  ForwardParams,
 } from 'ringcentral-call-control/lib/Session';
 
 import { extractHeadersData, getWebphoneReplyMessageOption } from './utils'
