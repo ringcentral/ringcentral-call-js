@@ -110,6 +110,8 @@ export class RingCentralCall extends EventEmitter {
     // TODO
     this._webphone = null;
     this._activeCallControl = null;
+    // @ts-ignore
+    this.removeAllListeners();
   }
 
   get webphone() {
