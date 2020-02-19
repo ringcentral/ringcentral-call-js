@@ -30,19 +30,16 @@ $(function() {
   function initCallControl() {
     subscription = rcsdk.createSubscription();
     var cachedSubscriptionData = rcsdk.cache().getItem('rc-call-control-subscription-key');
+    var eventFilters = ['/restapi/v1.0/account/~/extension/~/telephony/sessions'];
     if (cachedSubscriptionData) {
       try {
         subscription.setSubscription(cachedSubscriptionData); // use the cache
       } catch (e) {
         console.error('Cannot set subscription from cache data', e);
-        subscription.setEventFilters([
-          '/restapi/v1.0/account/~/extension/~/telephony/sessions',
-        ]);
+        subscription.setEventFilters(eventFilters);
       }
     } else {
-      subscription.setEventFilters([
-        '/restapi/v1.0/account/~/extension/~/telephony/sessions',
-      ]);
+      subscription.setEventFilters(eventFilters);
     }
     subscription.on([subscription.events.subscribeSuccess, subscription.events.renewSuccess], function() {
       rcsdk.cache().setItem(cacheKey, subscription.subscription());
@@ -52,6 +49,23 @@ $(function() {
     subscription.on(subscription.events.notification, function(msg) {
       // console.log(JSON.stringify(msg, null, 2));
       window.rcCallControl.onNotificationEvent(msg)
+    });
+    subscription.on(subscription.events.renewError, function() {
+      rcsdk.platform().loggedIn().then(function(loggedIn) {
+        if (loggedIn) {
+          subscription.reset().setEventFilters(eventFilters).register();
+        }
+      })
+    });
+    subscription.on(subscription.events.automaticRenewError, function() {
+      subscription.resubscribe();
+    });
+    subscription.on(subscription.events.subscribeError, function() {
+      rcsdk.platform().loggedIn().then(function(loggedIn) {
+        if (loggedIn) {
+          subscription.reset().setEventFilters(eventFilters).register();
+        }
+      })
     });
     subscription.register();
   }
@@ -128,11 +142,11 @@ $(function() {
       });
       $('.modal').modal('hide');
     }
-    if (rcCall.activeCallControl.ready) {
+    if (rcCall.webphoneRegistered || rcCall.activeCallControlReady) {
       onInitializedEvent();
-    } else {
-      rcCall.activeCallControl.on('initialized', onInitializedEvent);
     }
+    rcCall.on('webphone-registration-failed', onInitializedEvent);
+    rcCall.on('active-call-control-ready', onInitializedEvent);
     if ($callType.val() === 'webphone') {
       $deviceRow.hide();
     }
@@ -261,6 +275,7 @@ $(function() {
 
     $modal.find('.hangup').on('click', function() {
       session.hangup();
+      $modal.modal('hide');
     });
     $modal.find('.mute').on('click', function() {
       session.mute().then(function() {

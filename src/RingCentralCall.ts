@@ -18,6 +18,7 @@ export enum events {
   NEW = 'new',
   WEBPHONE_UNREGISTERED = 'webphone-unregistered',
   WEBPHONE_REGISTRATION_FAILED = 'webphone-registration-failed',
+  ACTIVE_CALL_CONTROL_READY = 'active-call-control-ready',
 };
 
 export class RingCentralCall extends EventEmitter {
@@ -25,6 +26,7 @@ export class RingCentralCall extends EventEmitter {
   private _activeCallControl: RingCentralCallControl;
   private _sessions: Session[];
   private _webphoneRegistered: boolean;
+  private _activeCallControlReady: boolean;
 
   constructor({
     webphone,
@@ -33,6 +35,7 @@ export class RingCentralCall extends EventEmitter {
     super();
     this._sessions = [];
     this._webphoneRegistered = false;
+    this._activeCallControlReady = false;
 
     this.setWebphone(webphone);
     this.setActiveCallControl(activeCallControl);
@@ -121,6 +124,12 @@ export class RingCentralCall extends EventEmitter {
     session.dispose();
   }
 
+  _onActiveCallControlInitialized = () => {
+    this._activeCallControlReady = true;
+    // @ts-ignore
+    this.emit(events.ACTIVE_CALL_CONTROL_READY);
+  }
+
   _onWebphoneRegistered = () => {
     if (!this._webphoneRegistered) {
       this._webphoneRegistered = true;
@@ -164,13 +173,17 @@ export class RingCentralCall extends EventEmitter {
     // @ts-ignore
     this._webphone.userAgent.removeListener('registrationFailed', this._onWebphoneRegistrationFailed);
     this._webphone = null;
+    this._webphoneRegistered = false;
   }
 
   setActiveCallControl(activeCallControl) {
     this.clearActiveCallControl();
     this._activeCallControl = activeCallControl;
+    this._activeCallControlReady = activeCallControl.ready;
     // @ts-ignore
     this._activeCallControl.on('new', this._onNewTelephonySession);
+    // @ts-ignore
+    this._activeCallControl.on('initialized', this._onActiveCallControlInitialized);
   }
 
   clearActiveCallControl() {
@@ -180,6 +193,7 @@ export class RingCentralCall extends EventEmitter {
     // @ts-ignore
     this._activeCallControl.removeListener('new', this._onNewTelephonySession);
     this._activeCallControl = null;
+    this._activeCallControlReady = false;
   }
 
   async dispose() {
@@ -207,5 +221,9 @@ export class RingCentralCall extends EventEmitter {
 
   get webphoneRegistered() {
     return this._webphoneRegistered;
+  }
+
+  get activeCallControlReady() {
+    return this._activeCallControlReady;
   }
 }
