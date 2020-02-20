@@ -1,6 +1,6 @@
 # RingCentral Call JS SDK
 
-RingCentral Call aims to help developers to make and control call easily with RingCentral Web Phone and Call Control APIs.
+RingCentral Call aims to help developers to make and control call easily with RingCentral Web Phone and Call Control APIs. In this SDK, we use Web Phone for voice transmission, use Call Control API for call control.
 
 ## Prerequisites
 
@@ -75,7 +75,19 @@ platform
   })
 ```
 
-## Events
+## API
+
+### Initialize
+
+Firstly, we need to create [RingCentral Web Phone](https://github.com/ringcentral/ringcentral-web-phone#application) instance and [RingCentral Call Control](https://github.com/ringcentral/ringcentral-call-control-js#init) instance. Then pass them when initialize RingCentral Call instance:
+
+```js
+var rcCall = new RingCentralCall({ webphone: rcWebPhone, activeCallControl: rcCallControl });
+```
+
+### Events
+
+### New call session event
 
 ```js
 var session = null;
@@ -85,13 +97,21 @@ rcCall.on('new', (newSession) => {
 });
 ```
 
+### Webphone registered event
+
 ```js
-session.on('status', ({ party }) => {
-  // console.log(part)
+rcCall.on('webphone-registration-failed', function () {
+  //  web phone feature is ready
 });
 ```
 
-## API
+### Call control ready event
+
+```js
+rcCall.on('active-call-control-ready', function () {
+  //  call control feature is ready
+});
+```
 
 ### Sessions List
 
@@ -99,7 +119,9 @@ session.on('status', ({ party }) => {
 var sessions = rcCall.sessions;
 ```
 
-### Start a call
+### Session API
+
+#### Start a call
 
 ```js
 rcCall.makeCall({
@@ -111,62 +133,72 @@ rcCall.makeCall({
 })
 ```
 
-### Hangup a call
+#### Hangup a call
 
 ```js
 session.hangup().then(...)
 ```
 
-### Hold a call
+#### Hold a call
 
 ```js
 session.hold().then(...)
 ```
 
-### Unhold a call
+#### Unhold a call
 
 ```js
 session.unhold().then(...)
 ```
 
-### To voicemail
+#### To voicemail
 
 ```js
 session.toVoicemail().then(...)
 ```
 
-### Reject a call
+#### Reject a call
 
 ```js
 session.reject().then(...)
 ```
 
-### Answer a call
+#### Answer a call
 
 ```js
 session.answer().then(...)
 ```
 
-### Forward a call
+#### Forward a call
 
 ```js
 session.forward('forward number').then(...)
 ```
 
-### Transfer a call
+#### Transfer a call
 
 ```js
 session.forward('transfer number').then(...)
 ```
 
-### Mute a call
+#### Mute a call
 
 ```js
 session.mute().then(...)
 ```
 
-### Unmute a call
+#### Unmute a call
 
 ```js
 session.unmute().then(...)
+```
+
+### Session Event
+
+Status changed event
+
+```js
+session.on('status', ({ party }) => {
+  // console.log(part)
+});
 ```
