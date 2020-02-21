@@ -21,7 +21,7 @@ $ yarn add ringcentral ringcentral-call ringcentral-call-control ringcentral-web
 
 For this example you will also need to have [RingCentral JS SDK](https://github.com/ringcentral/ringcentral-js#installation), [RingCentral Web Phone](https://github.com/ringcentral/ringcentral-web-phone) and [RingCentral Call Control](https://github.com/ringcentral/ringcentral-call-control) installed.
 
-Create RingCentral Call Control and RingCentral Web Phone instances:
+Create RingCentral Call instances:
 
 ```js
 var appClientId = '...'; 
@@ -60,17 +60,8 @@ platform
       uuid: res.json().device.extension.id,
     });
 
-    // create RingCentral call control instance
-    var rcCallControl = new RingCentralCallControl({ sdk: sdk });
-    var subscription = sdk.createSubscription();
-    subscription.setEventFilters(['/restapi/v1.0/account/~/extension/~/telephony/sessions']);
-    subscription.on(subscription.events.notification, function(msg) {
-       rcCallControl.onNotificationEvent(msg)
-    });
-    subscription.register();
-
     // create RingCentral call instance
-    rcCall = new RingCentralCall({ webphone: rcWebPhone, activeCallControl: rcCallControl });
+    rcCall = new RingCentralCall({ webphone: rcWebPhone });
     return rcCall;
   })
 ```
@@ -79,10 +70,10 @@ platform
 
 ### Initialize
 
-Firstly, we need to create [RingCentral Web Phone](https://github.com/ringcentral/ringcentral-web-phone#application) instance and [RingCentral Call Control](https://github.com/ringcentral/ringcentral-call-control-js#init) instance. Then pass them when initialize RingCentral Call instance:
+Firstly, we need to create [RingCentral Web Phone](https://github.com/ringcentral/ringcentral-web-phone#application) instance. Then pass them when initialize RingCentral Call instance:
 
 ```js
-var rcCall = new RingCentralCall({ webphone: rcWebPhone, activeCallControl: rcCallControl });
+var rcCall = new RingCentralCall({ webphone: rcWebPhone });
 ```
 
 ### Events

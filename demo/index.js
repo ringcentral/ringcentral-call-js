@@ -2,8 +2,6 @@ $(function() {
   var rcsdk = null;
   var platform = null;
   var loggedIn = false;
-  var subscription = null;
-  var rcCallControl = null;
   var rcWebPhone = null;
   var rcCall = null;
   var redirectUri = getRedirectUri();
@@ -27,73 +25,26 @@ $(function() {
     return $($tpl.html());
   }
 
-  function initCallControl() {
-    subscription = rcsdk.createSubscription();
-    var cachedSubscriptionData = rcsdk.cache().getItem('rc-call-control-subscription-key');
-    var eventFilters = ['/restapi/v1.0/account/~/extension/~/telephony/sessions'];
-    if (cachedSubscriptionData) {
-      try {
-        subscription.setSubscription(cachedSubscriptionData); // use the cache
-      } catch (e) {
-        console.error('Cannot set subscription from cache data', e);
-        subscription.setEventFilters(eventFilters);
-      }
-    } else {
-      subscription.setEventFilters(eventFilters);
-    }
-    subscription.on([subscription.events.subscribeSuccess, subscription.events.renewSuccess], function() {
-      rcsdk.cache().setItem(cacheKey, subscription.subscription());
-    });
-    rcCallControl = new RingCentralCallControl({ sdk: rcsdk });
-    window.rcCallControl = rcCallControl;
-    subscription.on(subscription.events.notification, function(msg) {
-      // console.log(JSON.stringify(msg, null, 2));
-      window.rcCallControl.onNotificationEvent(msg)
-    });
-    subscription.on(subscription.events.renewError, function() {
-      rcsdk.platform().loggedIn().then(function(loggedIn) {
-        if (loggedIn) {
-          subscription.reset().setEventFilters(eventFilters).register();
-        }
-      })
-    });
-    subscription.on(subscription.events.automaticRenewError, function() {
-      subscription.resubscribe();
-    });
-    subscription.on(subscription.events.subscribeError, function() {
-      rcsdk.platform().loggedIn().then(function(loggedIn) {
-        if (loggedIn) {
-          subscription.reset().setEventFilters(eventFilters).register();
-        }
-      })
-    });
-    subscription.register();
-  }
-
-  function initWebPhone({ appKey }) {
+  function initCallSDK({ appKey }) {
     return platform.post('/client-info/sip-provision', {
       sipInfo: [{transport: 'WSS'}]
     }).then(function(res) {
-      var sipProvision = res.json()
+      var sipProvision = res.json();
       rcWebPhone = new RingCentral.WebPhone(sipProvision, {
         appKey,
         appName: 'RingCentral Call Demo',
         appVersion: '0.0.1',
         logLevel: 2,
         uuid: sipProvision.device.extension.id,
-      })
+      });
       window.addEventListener('unload', function () {
         if (rcWebPhone) {
           rcWebPhone.userAgent.stop();
         }
       });
-      initCallSDK()
+      rcCall = new RingCentralCall({ webphone: rcWebPhone })
+      window.rcCall = rcCall
     });
-  }
-
-  function initCallSDK() {
-    rcCall = new RingCentralCall({ webphone: rcWebPhone, activeCallControl: rcCallControl })
-    window.rcCall = rcCall
   }
 
   function showCallPage() {
@@ -110,7 +61,7 @@ $(function() {
     var $fromNumberRow = $callPage.find('#from-number-row').eq(0);
     function refreshDevices() {
       $deviceSelect.empty();
-      var devices = rcCall.activeCallControl.devices.filter(function(d) { return d.status === 'Online' });
+      var devices = rcCall.devices.filter(function(d) { return d.status === 'Online' });
       if (devices.length === 0) {
         $deviceSelect.append('<option value="">No device availiable</option>');
         return;
@@ -142,7 +93,7 @@ $(function() {
       });
       $('.modal').modal('hide');
     }
-    if (rcCall.webphoneRegistered || rcCall.activeCallControlReady) {
+    if (rcCall.webphoneRegistered || rcCall.callControlReady) {
       onInitializedEvent();
     }
     rcCall.on('webphone-registration-failed', onInitializedEvent);
@@ -200,7 +151,7 @@ $(function() {
     });
     $deviceRefresh.on('click', function(e) {
       e.preventDefault();
-      rcCall.activeCallControl.refreshDevices().then(function () {
+      rcCall.refreshDevices().then(function () {
         refreshDevices();
       });
     });
@@ -403,10 +354,9 @@ $(function() {
     localStorage.setItem('rcCallControlServer', server || '');
     localStorage.setItem('rcCallControlAppKey', appKey || '');
     localStorage.setItem('rcCallControlAppSecret', appSecret || '');
-    initCallControl();
-    initWebPhone({ appKey }).then(function () {
+    initCallSDK({ appKey }).then(function () {
       showCallPage();
-    }); 
+    });
   }
 
   function show3LeggedLogin(server, appKey, appSecret) {

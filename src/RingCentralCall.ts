@@ -1,4 +1,5 @@
 import { EventEmitter } from 'events';
+import RingCentral from 'ringcentral';
 import RingCentralWebPhone from 'ringcentral-web-phone';
 import { RingCentralCallControl } from 'ringcentral-call-control';
 import { Session, events as sessionEvents, directions } from './Session';
@@ -18,27 +19,41 @@ export enum events {
   NEW = 'new',
   WEBPHONE_UNREGISTERED = 'webphone-unregistered',
   WEBPHONE_REGISTRATION_FAILED = 'webphone-registration-failed',
-  ACTIVE_CALL_CONTROL_READY = 'active-call-control-ready',
+  CALL_CONTROL_READY = 'call-control-ready',
+  CALL_CONTROL_NOTIFICATION_REDY = 'call-control-notification-ready',
+  CALL_CONTROL_NOTIFICATION_ERROR = 'call-control-notification-error',
 };
 
 export class RingCentralCall extends EventEmitter {
+  private _sdk: RingCentral;
   private _webphone: RingCentralWebPhone;
-  private _activeCallControl: RingCentralCallControl;
+  private _callControl: RingCentralCallControl;
+  private _subscription: any;
+  private _subscriptionCacheKey: string = 'rc-call-subscription-key';
+  private _subscriotionEventFilters: string[] = [];
   private _sessions: Session[];
   private _webphoneRegistered: boolean;
-  private _activeCallControlReady: boolean;
+  private _callControlNotificationReady: boolean;
+  private _enableSubscriptionHander: boolean;
 
   constructor({
     webphone,
-    activeCallControl,
+    sdk,
+    enableSubscriptionHander = true,
+  } : {
+    webphone: RingCentralWebPhone;
+    sdk: RingCentral;
+    enableSubscriptionHander: boolean;
   }) {
     super();
     this._sessions = [];
     this._webphoneRegistered = false;
-    this._activeCallControlReady = false;
+    this._callControlNotificationReady = false;
+    this._enableSubscriptionHander = enableSubscriptionHander;
+    this._sdk = sdk;
 
+    this.initCallControl(sdk);
     this.setWebphone(webphone);
-    this.setActiveCallControl(activeCallControl);
   }
 
   async makeCall(params : MakeCallParams) {
@@ -60,7 +75,7 @@ export class RingCentralCall extends EventEmitter {
     } else {
       callParams.extensionNumber = params.toNumber;
     }
-    const telephonySession = await this._activeCallControl.createCall(params.deviceId, callParams);
+    const telephonySession = await this._callControl.createCall(params.deviceId, callParams);
     return this._onNewTelephonySession(telephonySession);
   }
 
@@ -124,10 +139,9 @@ export class RingCentralCall extends EventEmitter {
     session.dispose();
   }
 
-  _onActiveCallControlInitialized = () => {
-    this._activeCallControlReady = true;
+  _onCallControlInitialized = () => {
     // @ts-ignore
-    this.emit(events.ACTIVE_CALL_CONTROL_READY);
+    this.emit(events.CALL_CONTROL_READY);
   }
 
   _onWebphoneRegistered = () => {
@@ -151,7 +165,7 @@ export class RingCentralCall extends EventEmitter {
   }
 
   setWebphone(webphone) {
-    this.clearWebphone();
+    this._clearWebphone();
     this._webphone = webphone;
     this._webphoneRegistered = webphone.userAgent.registerContext.registered;
     this._webphone.userAgent.on('invite', this._onWebPhoneSessionRing);
@@ -160,7 +174,7 @@ export class RingCentralCall extends EventEmitter {
     this._webphone.userAgent.on('registrationFailed', this._onWebphoneRegistrationFailed);
   }
 
-  clearWebphone() {
+  _clearWebphone() {
     if (!this._webphone) {
       return;
     }
@@ -176,29 +190,106 @@ export class RingCentralCall extends EventEmitter {
     this._webphoneRegistered = false;
   }
 
-  setActiveCallControl(activeCallControl) {
-    this.clearActiveCallControl();
-    this._activeCallControl = activeCallControl;
-    this._activeCallControlReady = activeCallControl.ready;
+  initCallControl(sdk: RingCentral) {
+    this._clearCallControl();
+    this._callControl = new RingCentralCallControl({ sdk });
+    if (this._enableSubscriptionHander) {
+      this._handleSubscription();
+    } else {
+      this._callControlNotificationReady = true;
+    }
     // @ts-ignore
-    this._activeCallControl.on('new', this._onNewTelephonySession);
+    this._callControl.on('new', this._onNewTelephonySession);
     // @ts-ignore
-    this._activeCallControl.on('initialized', this._onActiveCallControlInitialized);
+    this._callControl.on('initialized', this._onCallControlInitialized);
   }
 
-  clearActiveCallControl() {
-    if (!this._activeCallControl) {
+  _handleSubscription() {
+    this._subscription = this._sdk.createSubscription();
+    const cachedSubscriptionData = this._sdk.cache().getItem(this._subscriptionCacheKey);
+    this._subscriotionEventFilters = ['/restapi/v1.0/account/~/extension/~/telephony/sessions'];
+    if (cachedSubscriptionData) {
+      try {
+        this._subscription.setSubscription(cachedSubscriptionData); // use the cache
+      } catch (e) {
+        console.error('Cannot set subscription from cache data', e);
+        this._subscription.setEventFilters(this._subscriotionEventFilters);
+      }
+    } else {
+      this._subscription.setEventFilters(this._subscriotionEventFilters);
+    }
+    this._subscription.on(this._subscription.events.subscribeSuccess, this._onSubscriptionCreateSuccess);
+    this._subscription.on(this._subscription.events.renewSuccess, this._onSubscriptionCreateSuccess);
+    this._subscription.on(this._subscription.events.notification, this.onNotificationEvent);
+    this._subscription.on(this._subscription.events.renewError, this._onSubscriptionRenewFail);
+    this._subscription.on(this._subscription.events.automaticRenewError, this._onSubscriptionAutomaticRenewError);
+    this._subscription.on(this._subscription.events.subscribeError, this._onSubscriptionCreateError);
+    this._subscription.register();
+  }
+
+  _onSubscriptionCreateSuccess = () => {
+    this._callControlNotificationReady = true;
+    // @ts-ignore
+    this.emit(events.CALL_CONTROL_NOTIFICATION_REDY);
+    this._sdk.cache().setItem(this._subscriptionCacheKey, this._subscription.subscription());
+  }
+
+  _onSubscriptionCreateError = () => {
+    this._callControlNotificationReady = false;
+    // @ts-ignore
+    this.emit(events.CALL_CONTROL_NOTIFICATION_ERROR);
+    this._sdk.platform().loggedIn().then((loggedIn) => {
+      if (loggedIn) {
+        this._subscription.reset().setEventFilters(this._subscriotionEventFilters).register();
+      }
+    });
+  }
+
+  _onSubscriptionRenewFail = () => {
+    this._callControlNotificationReady = false;
+    // @ts-ignore
+    this.emit(events.CALL_CONTROL_NOTIFICATION_ERROR);
+    this._sdk.platform().loggedIn().then((loggedIn) => {
+      if (loggedIn) {
+        this._subscription.reset().setEventFilters(this._subscriotionEventFilters).register();
+      }
+    });
+  }
+
+  _onSubscriptionAutomaticRenewError = () => {
+    this._subscription.resubscribe();
+  }
+
+  _clearSubscriptionHander() {
+    if (!this._subscription) {
+      return;
+    }
+    this._subscription.removeListener(this._subscription.events.subscribeSuccess, this._onSubscriptionCreateSuccess);
+    this._subscription.removeListener(this._subscription.events.renewSuccess, this._onSubscriptionCreateSuccess);
+    this._subscription.removeListener(this._subscription.events.notification, this.onNotificationEvent);
+    this._subscription.removeListener(this._subscription.events.renewError, this._onSubscriptionRenewFail);
+    this._subscription.removeListener(this._subscription.events.automaticRenewError, this._onSubscriptionAutomaticRenewError);
+    this._subscription.removeListener(this._subscription.events.subscribeError, this._onSubscriptionCreateError);
+    this._subscription = null;
+  }
+
+  onNotificationEvent = (msg) => {
+    this._callControl.onNotificationEvent(msg)
+  }
+
+  _clearCallControl() {
+    if (!this._callControl) {
       return;
     }
     // @ts-ignore
-    this._activeCallControl.removeListener('new', this._onNewTelephonySession);
-    this._activeCallControl = null;
-    this._activeCallControlReady = false;
+    this._callControl.removeListener('new', this._onNewTelephonySession);
+    this._callControl = null;
   }
 
   async dispose() {
-    this.clearWebphone();
-    this.clearActiveCallControl();
+    this._clearWebphone();
+    this._clearCallControl();
+    this._clearSubscriptionHander();
     // @ts-ignore
     this.removeAllListeners();
     this.sessions.forEach((session) => {
@@ -207,12 +298,16 @@ export class RingCentralCall extends EventEmitter {
     this._sessions = [];
   }
 
+  refreshDevice() {
+    return this._callControl.refreshDevices();
+  }
+
   get webphone() {
     return this._webphone;
   }
 
-  get activeCallControl() {
-    return this._activeCallControl;
+  get callControl() {
+    return this._callControl;
   }
 
   get sessions() {
@@ -223,7 +318,15 @@ export class RingCentralCall extends EventEmitter {
     return this._webphoneRegistered;
   }
 
-  get activeCallControlReady() {
-    return this._activeCallControlReady;
+  get callControlReady() {
+    return !!(this._callControl && this._callControl.ready);
+  }
+
+  get callControlNotificationReady() {
+    return this._callControlNotificationReady;
+  }
+
+  get devices() {
+    return this._callControl && this._callControl.devices || [];
   }
 }
