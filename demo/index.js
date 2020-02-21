@@ -42,7 +42,7 @@ $(function() {
           rcWebPhone.userAgent.stop();
         }
       });
-      rcCall = new RingCentralCall({ webphone: rcWebPhone })
+      rcCall = new RingCentralCall({ webphone: rcWebPhone, sdk: rcsdk })
       window.rcCall = rcCall
     });
   }
@@ -97,7 +97,7 @@ $(function() {
       onInitializedEvent();
     }
     rcCall.on('webphone-registration-failed', onInitializedEvent);
-    rcCall.on('active-call-control-ready', onInitializedEvent);
+    rcCall.on('call-control-ready', onInitializedEvent);
     if ($callType.val() === 'webphone') {
       $deviceRow.hide();
     }

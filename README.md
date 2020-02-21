@@ -61,7 +61,7 @@ platform
     });
 
     // create RingCentral call instance
-    rcCall = new RingCentralCall({ webphone: rcWebPhone });
+    rcCall = new RingCentralCall({ webphone: rcWebPhone, sdk: sdk });
     return rcCall;
   })
 ```
@@ -70,10 +70,10 @@ platform
 
 ### Initialize
 
-Firstly, we need to create [RingCentral Web Phone](https://github.com/ringcentral/ringcentral-web-phone#application) instance. Then pass them when initialize RingCentral Call instance:
+Firstly, we need to create [RingCentral JS SDK](https://github.com/ringcentral/ringcentral-js#installation) instance and [RingCentral Web Phone](https://github.com/ringcentral/ringcentral-web-phone#application) instance. Then pass them when initialize RingCentral Call instance:
 
 ```js
-var rcCall = new RingCentralCall({ webphone: rcWebPhone });
+var rcCall = new RingCentralCall({ webphone: rcWebPhone, sdk: sdk });
 ```
 
 ### Events
@@ -91,7 +91,7 @@ rcCall.on('new', (newSession) => {
 ### Webphone registered event
 
 ```js
-rcCall.on('webphone-registration-failed', function () {
+rcCall.on('webphone-registered', function () {
   //  web phone feature is ready
 });
 ```
@@ -99,7 +99,7 @@ rcCall.on('webphone-registration-failed', function () {
 ### Call control ready event
 
 ```js
-rcCall.on('active-call-control-ready', function () {
+rcCall.on('call-control-ready', function () {
   //  call control feature is ready
 });
 ```
