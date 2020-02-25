@@ -111,7 +111,7 @@ export class RingCentralCall extends EventEmitter {
     this.emit(events.NEW, session);
   }
 
-  _onNewTelephonySession = (telephonySession) => {
+  _onNewTelephonySession = (telephonySession, fromPreload = false) => {
     let session =
       this.sessions.find(s => s.telephonySessionId === telephonySession.id);
     if (session) {
@@ -129,8 +129,10 @@ export class RingCentralCall extends EventEmitter {
     // @ts-ignore
     session.on(sessionEvents.DISCONNECTED, onSessionDisconnected);
     this._sessions.push(session);
-    // @ts-ignore
-    this.emit(events.NEW, session);
+    if (!fromPreload) {
+      // @ts-ignore
+      this.emit(events.NEW, session);
+    }
     return session;
   }
 
@@ -140,6 +142,9 @@ export class RingCentralCall extends EventEmitter {
   }
 
   _onCallControlInitialized = () => {
+    this.callControl.sessions.forEach((telephonySession) => {
+      this._onNewTelephonySession(telephonySession, true);
+    });
     // @ts-ignore
     this.emit(events.CALL_CONTROL_READY);
   }
