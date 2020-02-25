@@ -43,7 +43,7 @@ export class RingCentralCall extends EventEmitter {
   } : {
     webphone: RingCentralWebPhone;
     sdk: RingCentral;
-    enableSubscriptionHander: boolean;
+    enableSubscriptionHander?: boolean;
   }) {
     super();
     this._sessions = [];
@@ -224,7 +224,7 @@ export class RingCentralCall extends EventEmitter {
     this._subscription.on(this._subscription.events.renewError, this._onSubscriptionRenewFail);
     this._subscription.on(this._subscription.events.automaticRenewError, this._onSubscriptionAutomaticRenewError);
     this._subscription.on(this._subscription.events.subscribeError, this._onSubscriptionCreateError);
-    this._subscription.register();
+    return this._subscription.register();
   }
 
   _onSubscriptionCreateSuccess = () => {
