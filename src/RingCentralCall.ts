@@ -303,7 +303,7 @@ export class RingCentralCall extends EventEmitter {
     this._sessions = [];
   }
 
-  refreshDevice() {
+  refreshDevices() {
     return this._callControl.refreshDevices();
   }
 

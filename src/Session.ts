@@ -130,6 +130,8 @@ export class Session extends EventEmitter {
 
   dispose() {
     // TODO
+    this._webphoneSession = null;
+    this._telephonySession = null;
     // @ts-ignore
     this.removeAllListeners();
   }
