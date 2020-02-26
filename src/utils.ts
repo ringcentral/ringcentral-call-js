@@ -41,26 +41,27 @@ export function extractHeadersData(headers) {
         accum[camelize(key)] = value;
         return accum;
       }, {}) || {};
-    if (
-      headers &&
-      headers['Call-ID'] &&
-      headers['Call-ID'][0] &&
-      headers['Call-ID'][0].raw
-    ) {
-      callId = headers['Call-ID'][0].raw;
-    }
+  }
+
+  if (
+    headers &&
+    headers['Call-ID'] &&
+    headers['Call-ID'][0] &&
+    headers['Call-ID'][0].raw
+  ) {
+    callId = headers['Call-ID'][0].raw;
   }
 
   return [partyData, callId];
 }
 
-const WEBPHONE_REPLY_TIMEUNIT = {
+export const WEBPHONE_REPLY_TIMEUNIT = {
   Minute: 0,
   Hour: 1,
   Day: 2
 };
 
-const WEBPHONE_REPLY_TYPE = {
+export const WEBPHONE_REPLY_TYPE = {
   customMessage: 0,
   callBack: 1,
   onMyWay: 2,

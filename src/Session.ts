@@ -89,7 +89,7 @@ export class Session extends EventEmitter {
         this._status = this.telephonySession.party.status.code;
       }
       // @ts-ignore
-      this.emit(events.STATUS, { party, status: myParty.status.code });
+      this.emit(events.STATUS, { party, status: this._status });
       if (
         myParty &&
         myParty.status.code === PartyStatusCode.disconnected
@@ -339,6 +339,8 @@ export class Session extends EventEmitter {
     if (this._telephonySession && recordingId) {
       return this._telephonySession.pauseRecord(recordingId);
     }
-    return this._webphoneSession.stopRecord();
+    if (this._webphoneSession) {
+      return this._webphoneSession.stopRecord();
+    }
   }
 }
