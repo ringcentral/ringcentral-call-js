@@ -193,3 +193,11 @@ session.on('status', ({ party }) => {
   // console.log(part)
 });
 ```
+
+## TODO
+
+- [ ] Add more tests and CI
+- [ ] CDN version
+- [ ] Github Page demo
+- [ ] Call Switch
+- [ ] Conference Call Support
