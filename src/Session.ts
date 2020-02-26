@@ -164,7 +164,7 @@ export class Session extends EventEmitter {
     }
     if (this.webphoneSession) {
       // @ts-ignore
-      return webphoneSession.__rc_direction;
+      return this.webphoneSession.__rc_direction;
     }
   }
 
