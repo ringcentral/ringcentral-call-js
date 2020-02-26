@@ -17,6 +17,18 @@ Use npm or yarn
 $ yarn add ringcentral ringcentral-call ringcentral-call-control ringcentral-web-phone
 ```
 
+Use CDN scripts
+
+```html
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/es6-promise/3.2.2/es6-promise.js"></script>
+<script type="text/javascript" src="https://cdn.pubnub.com/sdk/javascript/pubnub.4.20.1.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/fetch/0.11.1/fetch.js"></script>
+<script type="text/javascript" src="https://cdn.rawgit.com/ringcentral/ringcentral-js/3.2.2/build/ringcentral.js"></script>
+<script type="text/javascript" src="https://unpkg.com/sip.js@0.13.5/dist/sip.js"></script>
+<script type="text/javascript" src="https://unpkg.com/ringcentral-web-phone@0.7.7/dist/ringcentral-web-phone.js"></script>
+<script type="text/javascript" src="https://unpkg.com/ringcentral-call@0.0.3/build/index.js"></script>
+```
+
 ## Usage
 
 For this example you will also need to have [RingCentral JS SDK](https://github.com/ringcentral/ringcentral-js#installation), [RingCentral Web Phone](https://github.com/ringcentral/ringcentral-web-phone) and [RingCentral Call Control](https://github.com/ringcentral/ringcentral-call-control) installed.

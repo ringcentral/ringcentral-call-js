@@ -9,20 +9,6 @@ module.exports = {
     libraryTarget: 'umd',
     libraryExport: 'RingCentralCall'
   },
-  externals: {
-    "ringcentral-web-phone": {
-      commonjs: 'ringcentral-web-phone',
-      commonjs2: 'ringcentral-web-phone',
-      amd: 'ringcentral-web-phone',
-      root: 'RingCentralWebPhone'
-    },
-    "ringcentral-call-control": {
-      commonjs: 'ringcentral-call-control',
-      commonjs2: 'ringcentral-call-control',
-      amd: 'ringcentral-call-control',
-      root: 'RingCentralCallControl'
-    }
-  },
   resolve: {
     extensions: ['.ts', '.js']
   },
