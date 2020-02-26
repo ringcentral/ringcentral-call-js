@@ -7,7 +7,7 @@ RingCentral Call aims to help developers to make and control call easily with Ri
 * You will need an active RingCentral account to create RingCentral app. Don't have an account? [Get your Free RingCentral Developer Account Now!](https://developers.ringcentral.com/)
 * A RingCentral app
     * App type: Browser-Based or Server/Web
-    * Permissions: 'Active Call Control', 'Read Accounts', 'Read Presence', 'Webhook Subscriptions', 'VoIP'
+    * Permissions: 'Call Control', 'Read Accounts', 'Read Presence', 'Webhook Subscriptions', 'VoIP Calling'
 
 ## Install
 
@@ -28,6 +28,22 @@ Use CDN scripts
 <script type="text/javascript" src="https://unpkg.com/ringcentral-web-phone@0.7.7/dist/ringcentral-web-phone.js"></script>
 <script type="text/javascript" src="https://unpkg.com/ringcentral-call@0.0.3/build/index.js"></script>
 ```
+
+## Demo
+
+Online: [Demo](https://embbnux.github.io/ringcentral-call-js/)
+
+Run in local:
+
+```
+$ git clone https://github.com/embbnux/ringcentral-call-js.git
+$ cd ringcentral-call-js
+$ yarn
+$ yarn build
+$ yarn start
+```
+
+Open `http://localhost:8080/demo/`, and login with RingCentral account to test.
 
 ## Usage
 
@@ -209,7 +225,5 @@ session.on('status', ({ party }) => {
 ## TODO
 
 - [ ] Add more tests and CI
-- [ ] CDN version
-- [ ] Github Page demo
 - [ ] Call Switch
 - [ ] Conference Call Support
