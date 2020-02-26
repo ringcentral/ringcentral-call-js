@@ -44,6 +44,7 @@ class Subscription {
       renewSuccess: 'renewSuccess',
       notification: 'notification',
       renewError: 'renewError',
+      automaticRenewError: 'automaticRenewError',
     };
   }
 
@@ -74,6 +75,14 @@ class Subscription {
   removeListener(event, cb) {
     delete this._events[event];
   }
+
+  trigger(event, ...args) {
+    this._events[event](...args);
+  }
+
+  subscription() {
+    return {};
+  }
 }
 
 export default class RingCentral {
@@ -93,7 +102,7 @@ export default class RingCentral {
 
       },
       loggedIn() {
-        return new Promise.resolve(true);
+        return Promise.resolve(true);
       }
     };
   }

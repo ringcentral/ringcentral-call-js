@@ -6,19 +6,46 @@ export class RingCentralCallControl {
 
   constructor() {
     this._events = {};
+    this._sessions = [];
   }
 
   on(event, cb) {
     this._events[event] = cb;
   }
 
-  createCall() {
-    const session = new Session();
+  trigger(event, ...args) {
+    this._events[event](...args);
+  }
+
+  createCall({ phoneNumber, deviceId }) {
+    const session = new Session({
+      id: '123',
+      status: 'Setup',
+      toNumber: phoneNumber,
+      fromNumber: '',
+      direction: 'Outbound'
+    });
     this._sessions.push(session);
     return session;
   }
 
   get sessions() {
     return this._sessions;
+  }
+
+  setSessions(sessions) {
+    this._sessions = sessions;
+  }
+
+  removeListener(event) {
+    delete this._events[event];
+  }
+
+  get devices() {
+    return [];
+  }
+
+  onNotificationEvent() {
+    
   }
 }

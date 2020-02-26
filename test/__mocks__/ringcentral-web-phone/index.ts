@@ -1,6 +1,9 @@
 import { WebPhoneSession } from './lib/session';
+import { events } from '../../../src/Session';
 
 class Transport {
+  private _events: any;
+
   constructor() {
     this._events = {};
   }
@@ -24,11 +27,13 @@ class Transport {
 
 class RegisterContext {
   get registered() {
-    return true;
+    return false;
   }
 }
 
 class UserAgent {
+  private _events: any;
+
   constructor() {
     this._events = {};
     this.transport = new Transport();
@@ -85,6 +90,10 @@ class UserAgent {
 
   isRegistered() {
     return true;
+  }
+  
+  removeListener(event) {
+    delete this._events[event];
   }
 }
 
