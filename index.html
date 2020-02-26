@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8">
+  <title>RingCentral Call Demo</title>
+  <link href="./favicon.ico" type="image/vnd.microsoft.icon" rel="shortcut icon">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+  <style>
+    h1 {
+      margin-top: 20px;
+    }
+
+    #app {
+      margin-top: 30px;
+    }
+
+    .table .call-list tr {
+      cursor: pointer;
+    }
+
+    .btn-group {
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+
+    .loading-modal .modal-content {
+      background: transparent;
+      border: none;
+      width: 48px;
+      margin: 0 auto;
+      margin-top: 200px;
+    }
+
+    .call-list-panel {
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>RingCentral Call Demo</h1>
+  <div id="app"></div>
+  <div class="modal fade loading-modal" data-backdrop="static" data-keyboard="false" tabindex="-1">
+      <div class="modal-dialog modal-sm">
+          <div class="modal-content" style="width: 48px">
+              <div class="spinner-border text-light" role="status">
+                <span class="sr-only">Loading...</span>
+              </div>
+          </div>
+      </div>
+  </div>
+</div>
+<script type="text/html" id="template-auth-flow">
+  <form class="panel panel-default" name="authorize-code">
+      <div class="panel-heading"><h3 class="panel-title">Enter your application key</h3></div>
+      <div class="panel-body">
+          <div class="form-group">
+              <label>Server:</label>
+              <input type="text" class="form-control" name="server">
+          </div>
+          <div class="form-group">
+              <label>App Client ID:</label>
+              <input type="text" class="form-control" name="appKey" required>
+          </div>
+          <div class="form-group">
+              <label>App Client Secret:</label>
+              <input type="text" class="form-control" name="appSecret">
+          </div>
+          <div class="form-group">
+              <label>Redirect Uri(Add following uri into RingCentral app redirect uri settings):</label>
+              <input type="text" class="form-control" name="redirectUri" disabled>
+          </div>
+      </div>
+      <div class="panel-footer text-center">
+          <button class="btn btn-primary" type="submit">Login</button>
+      </div>
+  </form>
+</script>
+<script type="text/html" id="template-call">
+  <div>
+    <div class="text-right">
+      <button class="btn btn-danger logout" type="button">Logout</button>
+    </div>
+    <form class="panel panel-default call-out-form">
+      <div class="panel-heading">
+        <h3 class="panel-title">Make A Call:</h3>
+      </div>
+      <div class="panel-body">
+          <div class="form-group row">
+            <label class="col-sm-3 col-form-label">Call Type:</label>
+            <div class="col-sm-6">
+              <select class="form-control" name="callType" required>
+                <option value="webphone">Web Phone</option>
+                <option value="callControl">Call Out with Device</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group row">
+            <label class="col-sm-3 col-form-label">Phone Number:</label>
+            <div class="col-sm-6">
+              <input type="text" class="form-control" name="number" required placeholder="+12345678900">
+            </div>
+          </div>
+          <div class="form-group row" id="device-row">
+            <label class="col-sm-3 col-form-label">Device:</label>
+            <div class="col-sm-6">
+              <select class="form-control" name="device">
+                <option value="">No devices availiable</option>
+              </select>
+            </div>
+            <label class="col-sm-3">
+              <button class="btn btn-outline-primary device-refresh">Refresh</button>
+            </label>
+          </div>
+          <div class="form-group row" id="from-number-row">
+            <label class="col-sm-3 col-form-label">From:</label>
+            <div class="col-sm-6">
+              <select class="form-control" name="fromNumber">
+                <option value="">No from numbers availiable</option>
+              </select>
+            </div>
+          </div>
+          <!-- <div class="alert alert-warning device-alert" role="alert">
+            No devices availiable.
+          </div> -->
+      </div>
+      <div class="panel-footer">
+        <button class="btn btn-primary" type="submit">Call</button>
+      </div>
+    </form>
+    <div class="panel panel-default call-list-panel">
+      <div class="panel-heading">
+        <h3 class="panel-title">Existed calls:</h3>
+      </div>
+      <div class="panel-body">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th scope="col">Direction</th>
+              <th scope="col">From</th>
+              <th scope="col">To</th>
+              <th scope="col">My status</th>
+              <th scope="col">Other side's status</th>
+            </tr>
+          </thead>
+          <tbody class="call-list">
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</script>
+<script type="text/html" id="template-call-control">
+  <div class="modal fade" tabindex="-1" role="dialog">
+      <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+              <div class="modal-header">
+                <h4 class="modal-title">Call In Progress</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+              <div class="modal-body">
+                <div class="btn-toolbar">
+                  <span class="btn-group">
+                    <button class="btn btn-outline-primary mute">Mute</button>
+                    <button class="btn btn-outline-primary unmute">UnMute</button>
+                  </span>
+                  <span class="btn-group">
+                    <button class="btn btn-outline-primary hold">Hold</button>
+                    <button class="btn btn-outline-primary unhold">UnHold</button>
+                  </span>
+                  <span class="btn-group">
+                    <button class="btn btn-outline-primary startRecord">Start Recording</button>
+                    <button class="btn btn-outline-primary stopRecord">Stop Recording</button>
+                  </span>
+                </div>
+                <hr/>
+                <form>
+                  <div class="form-group row">
+                    <label class="col-sm-5 col-form-label">From:</label>
+                    <div class="col-sm-7">
+                      <input type="text" class="form-control-plaintext" name="from" readonly />
+                    </div>
+                  </div>
+                </form>
+                <hr/>
+                <form>
+                  <div class="form-group row">
+                    <label class="col-sm-5 col-form-label">To:</label>
+                    <div class="col-sm-7">
+                      <input type="text" class="form-control-plaintext" name="to" readonly />
+                    </div>
+                  </div>
+                </form>
+                <hr/>
+                <form>
+                  <div class="form-group row">
+                    <label class="col-sm-5 col-form-label">My status:</label>
+                    <div class="col-sm-7">
+                      <input type="text" class="form-control-plaintext" name="myStatus" readonly />
+                    </div>
+                  </div>
+                </form>
+                <form>
+                  <div class="form-group row">
+                    <label class="col-sm-5 col-form-label">Other side's status:</label>
+                    <div class="col-sm-7">
+                      <input type="text" class="form-control-plaintext" name="otherStatus" readonly />
+                    </div>
+                  </div>
+                </form>
+                <hr/>
+                <form class="transfer-form">
+                  <div class="form-group row">
+                    <label class="col-sm-2 col-form-label">Transfer:</label>
+                    <div class="col-sm-6">
+                      <input type="text" class="form-control" name="transfer" placeholder="+1 234 567-8900">
+                    </div>
+                    <div class="col-sm-4">
+                      <button class="btn btn-primary" type="submit">Transfer</button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+              <div class="modal-footer">
+                <button class="btn btn-danger hangup">Hang Up</button>
+              </div>
+          </div>
+      </div>
+  </div>
+</script>
+<script type="text/html" id="template-incoming">
+  <div class="modal fade" tabindex="-1" role="dialog">
+      <div class="modal-dialog">
+          <div class="modal-content">
+              <div class="modal-header">
+                <h4 class="modal-title">Incoming Call</h4>
+              </div>
+              <div class="modal-body">
+                <form>
+                  <div class="form-group row">
+                    <label class="col-sm-5 col-form-label">From:</label>
+                    <div class="col-sm-7">
+                      <input type="text" class="form-control-plaintext" name="from" readonly />
+                    </div>
+                  </div>
+                </form>
+                <hr/>
+                <form>
+                  <div class="form-group row">
+                    <label class="col-sm-5 col-form-label">To:</label>
+                    <div class="col-sm-7">
+                      <input type="text" class="form-control-plaintext" name="to" readonly />
+                    </div>
+                  </div>
+                </form>
+                <hr/>
+                <form class="forward-form">
+                  <div class="form-group row">
+                    <label class="col-sm-3 col-form-label">Forward To:</label>
+                    <div class="col-sm-5">
+                      <input type="text" class="form-control" name="forward" placeholder="">
+                    </div>
+                    <div class="col-sm-4">
+                        <button class="btn btn-primary" type="submit">Forward</button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+              <div class="modal-footer before-answer">
+                <button class="btn btn-warning toVoicemail">To Voicemail</button>
+                <button class="btn btn-success answer">Answer</button>
+              </div>
+              <div class="modal-footer answered" style="display: none">Connecting...</div>
+          </div>
+      </div>
+  </div>
+</script>
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/es6-promise/3.2.2/es6-promise.js"></script>
+<script type="text/javascript" src="https://cdn.pubnub.com/sdk/javascript/pubnub.4.20.1.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/fetch/0.11.1/fetch.js"></script>
+<script type="text/javascript" src="https://unpkg.com/ringcentral@3.2.2/build/ringcentral.js"></script>
+<script type="text/javascript" src="https://unpkg.com/sip.js@0.13.5/dist/sip.js"></script>
+<script type="text/javascript" src="https://unpkg.com/ringcentral-web-phone@0.7.7/dist/ringcentral-web-phone.js"></script>
+<script type="text/javascript" src="https://unpkg.com/ringcentral-call@0.0.3/build/index.js"></script>
+<script src="./index.js"></script>
+</body>
+</html>
