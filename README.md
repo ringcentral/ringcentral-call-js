@@ -2,7 +2,7 @@
 
 [![Coverage Status](https://coveralls.io/repos/github/embbnux/ringcentral-call-js/badge.svg?branch=master)](https://coveralls.io/github/embbnux/ringcentral-call-js?branch=master)
 [![NPM Version](https://img.shields.io/npm/v/ringcentral-call.svg?style=flat-square)](https://www.npmjs.com/package/ringcentral-call)
-[![Build Status](https://travis-ci.org/embbnux/ringcentral-call.svg?branch=master)](https://travis-ci.org/embbnux/ringcentral-call)
+[![Build Status](https://travis-ci.org/embbnux/ringcentral-call-js.svg?branch=master)](https://travis-ci.org/embbnux/ringcentral-call-js)
 
 RingCentral Call aims to help developers to make and control call easily with RingCentral Web Phone and Call Control APIs. In this SDK, we use Web Phone for voice transmission, use Call Control API for call control.
 
