@@ -1,4 +1,4 @@
-import { WebPhoneSession } from './lib/session';
+import { WebPhoneSession } from './lib/Session';
 
 class Transport {
   private _events: any;
