@@ -1,8 +1,8 @@
 # RingCentral Call JS SDK
 
-[![Coverage Status](https://coveralls.io/repos/github/embbnux/ringcentral-call-js/badge.svg?branch=master)](https://coveralls.io/github/embbnux/ringcentral-call-js?branch=master)
+[![Coverage Status](https://coveralls.io/repos/github/ringcentral/ringcentral-call-js/badge.svg?branch=master)](https://coveralls.io/github/ringcentral/ringcentral-call-js?branch=master)
 [![NPM Version](https://img.shields.io/npm/v/ringcentral-call.svg?style=flat-square)](https://www.npmjs.com/package/ringcentral-call)
-[![Build Status](https://travis-ci.org/embbnux/ringcentral-call-js.svg?branch=master)](https://travis-ci.org/embbnux/ringcentral-call-js)
+[![Build Status](https://travis-ci.org/ringcentral/ringcentral-call-js.svg?branch=master)](https://travis-ci.org/ringcentral/ringcentral-call-js)
 
 RingCentral Call aims to help developers to make and control call easily with RingCentral Web Phone and Call Control APIs. In this SDK, we use Web Phone for voice transmission, use Call Control API for call control.
 
@@ -35,12 +35,12 @@ Use CDN scripts
 
 ## Demo
 
-Online: [Demo](https://embbnux.github.io/ringcentral-call-js/)
+Online: [Demo](https://ringcentral.github.io/ringcentral-call-js/)
 
 Run in local:
 
 ```
-$ git clone https://github.com/embbnux/ringcentral-call-js.git
+$ git clone https://github.com/ringcentral/ringcentral-call-js.git
 $ cd ringcentral-call-js
 $ yarn
 $ yarn build

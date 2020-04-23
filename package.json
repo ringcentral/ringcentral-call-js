@@ -5,9 +5,9 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/embbnux/ringcentral-call-js.git"
+    "url": "git+https://github.com/ringcentral/ringcentral-call-js.git"
   },
-  "homepage": "https://github.com/embbnux/ringcentral-call-js#readme",
+  "homepage": "https://github.com/ringcentral/ringcentral-call-js#readme",
   "scripts": {
     "prepublish": "tsc && webpack",
     "tsc": "tsc",
