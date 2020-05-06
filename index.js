@@ -151,7 +151,7 @@ $(function() {
     });
     $deviceRefresh.on('click', function(e) {
       e.preventDefault();
-      rcCall.refreshDevices().then(function () {
+      rcCall.callControl.refreshDevices().then(function () {
         refreshDevices();
       });
     });
