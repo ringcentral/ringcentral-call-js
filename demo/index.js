@@ -34,8 +34,7 @@ $(function() {
         appKey,
         appName: 'RingCentral Call Demo',
         appVersion: '0.0.1',
-        logLevel: 2,
-        uuid: sipProvision.device.extension.id,
+        logLevel: 2
       });
       window.addEventListener('unload', function () {
         if (rcWebPhone) {
@@ -130,6 +129,7 @@ $(function() {
       var deviceId = $deviceSelect.val();
       var phoneNumber = $phoneNumber.val();
       var fromNumber = $fromNumberSelect.val();
+      var callType = $callType.val();
       var params = {};
       if (phoneNumber.length > 5) {
         params.phoneNumber = phoneNumber;
@@ -137,7 +137,7 @@ $(function() {
         params.extensionNumber = phoneNumber;
       }
       rcCall.makeCall({
-        type: 'webphone',
+        type: callType,
         toNumber: phoneNumber,
         fromNumber,
         deviceId,
@@ -151,7 +151,7 @@ $(function() {
     });
     $deviceRefresh.on('click', function(e) {
       e.preventDefault();
-      rcCall.refreshDevices().then(function () {
+      rcCall.callControl.refreshDevices().then(function () {
         refreshDevices();
       });
     });
