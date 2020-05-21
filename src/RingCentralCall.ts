@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events';
-import RingCentral from 'ringcentral';
+import { SDK as RingCentralSDK } from '@ringcentral/sdk';
+import { Subscriptions as RingCentralSubscriptions } from "@ringcentral/subscriptions";
 import RingCentralWebPhone from 'ringcentral-web-phone';
 import { RingCentralCallControl } from 'ringcentral-call-control';
 import { Session, events as sessionEvents, directions } from './Session';
@@ -25,7 +26,8 @@ export enum events {
 };
 
 export class RingCentralCall extends EventEmitter {
-  private _sdk: RingCentral;
+  private _sdk: RingCentralSDK;
+  private _subscriptions: RingCentralSubscriptions;
   private _webphone: RingCentralWebPhone;
   private _callControl: RingCentralCallControl;
   private _subscription: any;
@@ -39,11 +41,13 @@ export class RingCentralCall extends EventEmitter {
   constructor({
     webphone,
     sdk,
+    subscriptions,
     enableSubscriptionHander = true,
   } : {
     webphone: RingCentralWebPhone;
-    sdk: RingCentral;
+    sdk: RingCentralSDK;
     enableSubscriptionHander?: boolean;
+    subscriptions?: RingCentralSubscriptions;
   }) {
     super();
     this._sessions = [];
@@ -51,6 +55,7 @@ export class RingCentralCall extends EventEmitter {
     this._callControlNotificationReady = false;
     this._enableSubscriptionHander = enableSubscriptionHander;
     this._sdk = sdk;
+    this._subscriptions = subscriptions;
 
     this.initCallControl(sdk);
     this.setWebphone(webphone);
@@ -195,7 +200,7 @@ export class RingCentralCall extends EventEmitter {
     this._webphoneRegistered = false;
   }
 
-  initCallControl(sdk: RingCentral) {
+  initCallControl(sdk: RingCentralSDK) {
     this._clearCallControl();
     this._callControl = new RingCentralCallControl({ sdk });
     if (this._enableSubscriptionHander) {
@@ -210,7 +215,15 @@ export class RingCentralCall extends EventEmitter {
   }
 
   _handleSubscription() {
-    this._subscription = this._sdk.createSubscription();
+    if (this._subscriptions) {
+      this._subscription = this._subscriptions.createSubscription();
+      // @ts-ignore
+    } else if (typeof this._sdk.createSubscription === 'function') {
+      // @ts-ignore
+      this._subscription = this._sdk.createSubscription(); // For support RC JS SDK V3
+    } else {
+      throw new Error('Init Error: subscriptions instance is required');
+    }
     const cachedSubscriptionData = this._sdk.cache().getItem(this._subscriptionCacheKey);
     this._subscriotionEventFilters = ['/restapi/v1.0/account/~/extension/~/telephony/sessions'];
     if (cachedSubscriptionData) {

@@ -1,6 +1,7 @@
 $(function() {
   var rcsdk = null;
   var platform = null;
+  var subscriptions = null;
   var loggedIn = false;
   var rcWebPhone = null;
   var rcCall = null;
@@ -26,10 +27,11 @@ $(function() {
   }
 
   function initCallSDK({ appKey }) {
-    return platform.post('/client-info/sip-provision', {
+    return platform.post('/restapi/v1.0/client-info/sip-provision', {
       sipInfo: [{transport: 'WSS'}]
-    }).then(function(res) {
-      var sipProvision = res.json();
+    }).then(function (res) {
+      return res.json()
+    }).then(function(sipProvision) {
       rcWebPhone = new RingCentral.WebPhone(sipProvision, {
         appKey,
         appName: 'RingCentral Call Demo',
@@ -41,7 +43,7 @@ $(function() {
           rcWebPhone.userAgent.stop();
         }
       });
-      rcCall = new RingCentralCall({ webphone: rcWebPhone, sdk: rcsdk })
+      rcCall = new RingCentralCall({ webphone: rcWebPhone, sdk: rcsdk, subscriptions })
       window.rcCall = rcCall
     });
   }
@@ -72,7 +74,8 @@ $(function() {
     function refreshFromNumbers() {
       $fromNumberSelect.empty();
       platform.get('/restapi/v1.0/account/~/extension/~/phone-number').then(function (response) {
-        var data = response.json();
+        return response.json();
+      }).then(function (data) {
         var phoneNumbers = data.records;
         phoneNumbers.filter(function(p) {
           return (p.features && p.features.indexOf('CallerId') !== -1) || (p.usageType === 'ForwardedNumber' && p.status === 'PortedIn');
@@ -362,10 +365,13 @@ $(function() {
   function show3LeggedLogin(server, appKey, appSecret) {
     rcsdk = new RingCentral.SDK({
       cachePrefix: 'rc-call',
-      appKey: appKey,
-      appSecret: appSecret,
+      clientId: appKey,
+      clientSecret: appSecret,
       server: server,
       redirectUri: redirectUri
+    });
+    subscriptions = new RingCentral.Subscriptions({
+      sdk: rcsdk
     });
 
     platform = rcsdk.platform(server, appKey, appSecret);

@@ -4,6 +4,7 @@ import RingCentralWebPhone from './__mocks__/ringcentral-web-phone';
 import { WebPhoneSession } from './__mocks__/ringcentral-web-phone/lib/Session';
 import { Session as TelephonySession } from './__mocks__/ringcentral-call-control/lib/Session';
 import RingCentral from './__mocks__/ringcentral';
+import Subscriptions from './__mocks__/subscriptions';
 
 let rcCall;
 let webphone;
@@ -13,10 +14,11 @@ describe('RingCentral Call ::', () => {
     beforeEach(() => {
       webphone = new RingCentralWebPhone(); // mocked
       const sdk = new RingCentral({}); // mocked
-  
+      const subscriptions = new Subscriptions();
       rcCall = new RingCentralCall({
         webphone,
         sdk,
+        subscriptions,
       });
     });
   
@@ -229,7 +231,6 @@ describe('RingCentral Call ::', () => {
     beforeEach(() => {
       webphone = new RingCentralWebPhone(); // mocked
       const sdk = new RingCentral({}); // mocked
-  
       rcCall = new RingCentralCall({
         webphone,
         sdk,

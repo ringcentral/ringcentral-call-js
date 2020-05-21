@@ -64,7 +64,6 @@ export class Session extends EventEmitter {
     this.webphoneSession.on('terminated', () => {
       this._status = PartyStatusCode.disconnected;
       if (!this.telephonySession) {
-        // @ts-ignore
         this.emit(events.DISCONNECTED);
         this._webphoneSession = null;
         return;
@@ -73,7 +72,6 @@ export class Session extends EventEmitter {
       this._webphoneSession = null;
     })
     this._webphoneSessionConnected = true;
-    // @ts-ignore
     this.emit('webphoneSessionConnected');
   }
 
@@ -82,20 +80,17 @@ export class Session extends EventEmitter {
     if (this.telephonySession.party) {
       this._status = this.telephonySession.party.status.code;
     }
-     // @ts-ignore
     this.telephonySession.on('status', ({ party }) => {
       const myParty = this.telephonySession.party;
       if (myParty) {
         this._status = this.telephonySession.party.status.code;
       }
-      // @ts-ignore
       this.emit(events.STATUS, { party, status: this._status });
       if (
         myParty &&
         myParty.status.code === PartyStatusCode.disconnected
       ) {
         if (!this._webphoneSession) {
-          // @ts-ignore
           this.emit(events.DISCONNECTED);
           this._telephonySession = null;
           return;
@@ -132,7 +127,6 @@ export class Session extends EventEmitter {
     // TODO
     this._webphoneSession = null;
     this._telephonySession = null;
-    // @ts-ignore
     this.removeAllListeners();
   }
 
