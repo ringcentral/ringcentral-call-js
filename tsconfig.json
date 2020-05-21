@@ -8,6 +8,7 @@
     "sourceMap": true,
     "declaration": true,
     "outDir": "lib",
+    "esModuleInterop": true,
     "resolveJsonModule": true
   },
   "files": ["src/index.ts", "src/Session.ts", "src/RingCentralCall.ts"],

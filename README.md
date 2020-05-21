@@ -18,19 +18,20 @@ RingCentral Call aims to help developers to make and control call easily with Ri
 Use npm or yarn
 
 ```bash
-$ yarn add ringcentral ringcentral-call ringcentral-call-control ringcentral-web-phone
+$ yarn add @ringcentral/sdk @ringcentral/subscriptions ringcentral-call-control ringcentral-web-phone ringcentral-call
 ```
 
 Use CDN scripts
 
 ```html
-<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/es6-promise/3.2.2/es6-promise.js"></script>
-<script type="text/javascript" src="https://cdn.pubnub.com/sdk/javascript/pubnub.4.20.1.js"></script>
-<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/fetch/0.11.1/fetch.js"></script>
-<script type="text/javascript" src="https://cdn.rawgit.com/ringcentral/ringcentral-js/3.2.2/build/ringcentral.js"></script>
+<script type="text/javascript" src="https://unpkg.com/es6-promise@latest/dist/es6-promise.auto.js"></script>
+<script type="text/javascript" src="https://unpkg.com/pubnub@latest/dist/web/pubnub.js"></script>
+<script type="text/javascript" src="https://unpkg.com/whatwg-fetch@latest/dist/fetch.umd.js"></script>
+<script type="text/javascript" src="https://unpkg.com/@ringcentral/sdk@latest/dist/ringcentral.js"></script>
+<script type="text/javascript" src="https://unpkg.com/@ringcentral/subscriptions@latest/dist/ringcentral-subscriptions.js"></script>
 <script type="text/javascript" src="https://unpkg.com/sip.js@0.13.5/dist/sip.js"></script>
 <script type="text/javascript" src="https://unpkg.com/ringcentral-web-phone@0.7.7/dist/ringcentral-web-phone.js"></script>
-<script type="text/javascript" src="https://unpkg.com/ringcentral-call@0.0.3/build/index.js"></script>
+<script type="text/javascript" src="https://unpkg.com/ringcentral-call@0.2.0/build/index.js"></script>
 ```
 
 ## Demo
@@ -51,7 +52,7 @@ Open `http://localhost:8080/demo/`, and login with RingCentral account to test.
 
 ## Usage
 
-For this example you will also need to have [RingCentral JS SDK](https://github.com/ringcentral/ringcentral-js#installation), [RingCentral Web Phone](https://github.com/ringcentral/ringcentral-web-phone) and [RingCentral Call Control](https://github.com/ringcentral/ringcentral-call-control) installed.
+For this example you will also need to have [RingCentral JS SDK](https://github.com/ringcentral/ringcentral-js/tree/master/sdk#installation), [RingCentral JS Subscriptions SDK](https://github.com/ringcentral/ringcentral-js/tree/master/subscriptions#installation), [RingCentral Web Phone](https://github.com/ringcentral/ringcentral-web-phone) and [RingCentral Call Control](https://github.com/ringcentral/ringcentral-call-control) installed.
 
 Create RingCentral Call instances:
 
@@ -63,12 +64,13 @@ var appVersion = '...';
 var rcCall;
 
 var sdk = new RingCentral.SDK({
-  appKey: appClientId,
-  appSecret: appClientSecret,
+  clientId: appClientId,
+  clientSecret: appClientSecret,
   appName: appName,
   appVersion: appVersion,
   server: RingCentral.SDK.server.production // or .sandbox
 });
+var subscriptions = new RingCentral.Subscriptions({ sdk });
 
 var platform = sdk.platform();
 
@@ -79,21 +81,23 @@ platform
   })
   .then(function() {
     return platform
-            .post('/client-info/sip-provision', {
+            .post('/restapi/v1.0/client-info/sip-provision', {
               sipInfo: [{transport: 'WSS'}]
             })
   })
   .then(function(res) {
+    return res.json();
+  })
+  .then(function(sipProvision) {
     // create RingCentral web phone instance
-    var rcWebPhone = new RingCentral.WebPhone(res.json(), {
+    var rcWebPhone = new RingCentral.WebPhone(sipProvision, {
       appKey: appClientId,
       appName: 'RingCentral Call Demo',
-      appVersion: '0.0.1',
-      uuid: res.json().device.extension.id,
+      appVersion: '0.0.1'
     });
 
     // create RingCentral call instance
-    rcCall = new RingCentralCall({ webphone: rcWebPhone, sdk: sdk });
+    rcCall = new RingCentralCall({ webphone: rcWebPhone, sdk: sdk, subscriptions: subscriptions });
     return rcCall;
   })
 ```
