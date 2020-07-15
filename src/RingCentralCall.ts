@@ -65,6 +65,9 @@ export class RingCentralCall extends EventEmitter {
 
   async makeCall(params : MakeCallParams) {
     if (params.type === 'webphone') {
+      if (!this.webphone) {
+        throw(new Error('webphone should not be null'));
+      }
       if (!this.webphoneRegistered) {
         throw(new Error('webphone is not registered'));
       }
