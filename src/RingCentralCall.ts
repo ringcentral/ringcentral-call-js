@@ -44,7 +44,7 @@ export class RingCentralCall extends EventEmitter {
     subscriptions,
     enableSubscriptionHander = true,
   } : {
-    webphone: RingCentralWebPhone;
+    webphone?: RingCentralWebPhone;
     sdk: RingCentralSDK;
     enableSubscriptionHander?: boolean;
     subscriptions?: RingCentralSubscriptions;
