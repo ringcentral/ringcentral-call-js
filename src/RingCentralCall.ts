@@ -58,7 +58,9 @@ export class RingCentralCall extends EventEmitter {
     this._subscriptions = subscriptions;
 
     this.initCallControl(sdk);
-    this.setWebphone(webphone);
+    if (webphone) {
+      this.setWebphone(webphone);
+    }
   }
 
   async makeCall(params : MakeCallParams) {
@@ -66,7 +68,7 @@ export class RingCentralCall extends EventEmitter {
       if (!this.webphoneRegistered) {
         throw(new Error('webphone is not registered'));
       }
-      const webphoneSession = this._webphone.userAgent.invite(params.toNumber, {
+      const webphoneSession = this._webphone && this._webphone.userAgent.invite(params.toNumber, {
         fromNumber: params.fromNumber,
         homeCountryId: params.homeContryId,
       } as any);
@@ -191,7 +193,7 @@ export class RingCentralCall extends EventEmitter {
     // @ts-ignore
     this._webphone.userAgent.removeListener('invite', this._onWebPhoneSessionRing);
     // @ts-ignore
-    this._webphone.userAgent.removeListener('registered', this._onWebphoneRegisted);
+    this._webphone.userAgent.removeListener('registered', this._onWebphoneRegistered);
     // @ts-ignore
     this._webphone.userAgent.removeListener('unregistered', this._onWebphoneUnregistered);
     // @ts-ignore
