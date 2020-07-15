@@ -11,6 +11,6 @@
     "esModuleInterop": true,
     "resolveJsonModule": true
   },
-  "files": ["src/index.ts", "src/Session.ts", "src/RingCentralCall.ts"],
+  "files": ["src/index.ts", "src/Session.ts", "src/RingCentralCall.ts", "src/userAgent.ts"],
   "compileOnSave": true
 }
