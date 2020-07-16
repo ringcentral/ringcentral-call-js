@@ -4,6 +4,7 @@ import { Subscriptions as RingCentralSubscriptions } from "@ringcentral/subscrip
 import RingCentralWebPhone from 'ringcentral-web-phone';
 import { RingCentralCallControl } from 'ringcentral-call-control';
 import { Session, events as sessionEvents, directions } from './Session';
+import { USER_AGENT } from './userAgent';
 
 import { extractHeadersData } from './utils'
 
@@ -37,17 +38,20 @@ export class RingCentralCall extends EventEmitter {
   private _webphoneRegistered: boolean;
   private _callControlNotificationReady: boolean;
   private _enableSubscriptionHander: boolean;
+  private _userAgent: string;
 
   constructor({
     webphone,
     sdk,
     subscriptions,
     enableSubscriptionHander = true,
+    userAgent,
   } : {
     webphone?: RingCentralWebPhone;
     sdk: RingCentralSDK;
     enableSubscriptionHander?: boolean;
     subscriptions?: RingCentralSubscriptions;
+    userAgent?: String;
   }) {
     super();
     this._sessions = [];
@@ -56,6 +60,7 @@ export class RingCentralCall extends EventEmitter {
     this._enableSubscriptionHander = enableSubscriptionHander;
     this._sdk = sdk;
     this._subscriptions = subscriptions;
+    this._userAgent = userAgent ? `${userAgent} ${USER_AGENT}` : USER_AGENT;
 
     this.initCallControl(sdk);
     if (webphone) {
@@ -207,7 +212,7 @@ export class RingCentralCall extends EventEmitter {
 
   initCallControl(sdk: RingCentralSDK) {
     this._clearCallControl();
-    this._callControl = new RingCentralCallControl({ sdk });
+    this._callControl = new RingCentralCallControl({ sdk, userAgent: this._userAgent });
     if (this._enableSubscriptionHander) {
       this._handleSubscription();
     } else {

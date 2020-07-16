@@ -22,7 +22,7 @@ describe('RingCentral Call ::', () => {
       });
     });
   
-    test('it should be initialzed', async () => {
+    test('it should be initialized', async () => {
       expect(rcCall.webphone).toEqual(webphone);
       expect(!!rcCall.callControl).toEqual(true);
       expect(rcCall.webphoneRegistered).toEqual(false);
@@ -94,7 +94,7 @@ describe('RingCentral Call ::', () => {
       expect(rcCall.sessions.length).toEqual(0);
     });
   
-    test('should make call successfull with callControl mode and extensionNumber', async () => {
+    test('should make call successfully with callControl mode and extensionNumber', async () => {
       const session = await rcCall.makeCall(
         { toNumber: '101', deviceId: '1111', type: 'callControl' }
       );
@@ -103,7 +103,7 @@ describe('RingCentral Call ::', () => {
       expect(!!session.telephonySession).toEqual(true);
     });
   
-    test('should make call successfull with callControl mode and phoneNumber', async () => {
+    test('should make call successfully with callControl mode and phoneNumber', async () => {
       const session = await rcCall.makeCall(
         { toNumber: '1234567890', deviceId: '1111', type: 'callControl' }
       );
@@ -269,6 +269,50 @@ describe('RingCentral Call ::', () => {
       rcCall.sessions[0].hangup = hangup;
       rcCall.dispose();
       expect(hangup.mock.calls.length).toEqual(1);
+    });
+  });
+
+  describe('No web phone instance', () => {
+    beforeEach(() => {
+      const sdk = new RingCentral({}); // mocked
+      const subscriptions = new Subscriptions();
+      rcCall = new RingCentralCall({ sdk, subscriptions });
+    });
+  
+    test('it should be initialized', async () => {
+      expect(!!rcCall.callControl).toEqual(true);
+      expect(rcCall.webphoneRegistered).toEqual(false);
+      expect(rcCall.callControlReady).toEqual(false);
+    });
+
+    test('should make call successfully with callControl mode and extensionNumber', async () => {
+      const session = await rcCall.makeCall(
+        { toNumber: '101', deviceId: '1111', type: 'callControl' }
+      );
+      expect(rcCall.sessions.length).toEqual(1);
+      expect(session.direction).toEqual(directions.OUTBOUND);
+      expect(!!session.telephonySession).toEqual(true);
+    });
+  });
+
+  describe('UserAgent', () => {
+    beforeEach(() => {
+      const sdk = new RingCentral({}); // mocked
+      const subscriptions = new Subscriptions();
+      webphone = new RingCentralWebPhone(); // mocked
+      rcCall = new RingCentralCall({
+        webphone,
+        sdk,
+        subscriptions,
+        userAgent: 'TestUserAgent'
+      });
+    });
+  
+    test('it should be initialized', async () => {
+      expect(!!rcCall.callControl).toEqual(true);
+      expect(rcCall.webphoneRegistered).toEqual(false);
+      expect(rcCall.callControlReady).toEqual(false);
+      expect(rcCall._userAgent).toContain('TestUserAgent');
     });
   });
 });
