@@ -407,6 +407,11 @@ export class RingCentralCall extends EventEmitter {
     this._callControl.onNotificationEvent(msg);
   };
 
+  loadSessions = async (sessions) => {
+    await this._callControl.loadSessions(sessions);
+    this._sessions = this._callControl.sessions;
+  }
+
   _clearCallControl() {
     if (!this._callControl) {
       return;
