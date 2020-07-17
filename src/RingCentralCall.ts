@@ -43,27 +43,27 @@ export class RingCentralCall extends EventEmitter {
   private _preloadSessions: boolean;
   private _preloadDevices: boolean;
   private _extensionInfo: any;
+  private _callControlOptions: { accountLevel?: boolean; preloadSessions?: boolean; preloadDevices?: boolean; extensionInfo?: any; };
 
   constructor({
     webphone,
     sdk,
     subscriptions,
     enableSubscriptionHander = true,
-    accountLevel,
-    preloadSessions = true,
-    preloadDevices = true,
-    extensionInfo,
     userAgent,
+    callControlOptions,
   }: {
     webphone?: RingCentralWebPhone;
     sdk: RingCentralSDK;
     enableSubscriptionHander?: boolean;
     subscriptions?: RingCentralSubscriptions;
-    accountLevel?: boolean;
-    preloadSessions?: boolean;
-    preloadDevices?: boolean;
-    extensionInfo?: Extension;
     userAgent?: String;
+    callControlOptions?: {
+      accountLevel?: boolean;
+      preloadSessions?: boolean;
+      preloadDevices?: boolean;
+      extensionInfo?: Extension;
+    }
   }) {
     super();
     this._sessions = [];
@@ -73,10 +73,7 @@ export class RingCentralCall extends EventEmitter {
     this._sdk = sdk;
     this._subscriptions = subscriptions;
     this._userAgent = userAgent ? `${userAgent} ${USER_AGENT}` : USER_AGENT;
-    this._accountLevel = accountLevel;
-    this._preloadSessions = preloadSessions;
-    this._preloadDevices = preloadDevices;
-    this._extensionInfo = extensionInfo;
+    this._callControlOptions = callControlOptions;
     this.initCallControl(sdk);
     if (webphone) {
       this.setWebphone(webphone);
@@ -256,10 +253,7 @@ export class RingCentralCall extends EventEmitter {
     this._callControl = new RingCentralCallControl({
       sdk,
       userAgent: this._userAgent,
-      accountLevel: this._accountLevel,
-      preloadSessions: this._preloadSessions,
-      preloadDevices: this._preloadDevices,
-      extensionInfo: this._extensionInfo,
+      ...this._callControlOptions
     });
     if (this._enableSubscriptionHander) {
       this._handleSubscription();
@@ -409,7 +403,9 @@ export class RingCentralCall extends EventEmitter {
 
   loadSessions = async (sessions) => {
     await this._callControl.loadSessions(sessions);
-    this._sessions = this._callControl.sessions as Session[];
+    this._callControl.sessions.forEach((session) => {
+      this._onNewTelephonySession(session, true)
+    });
   }
 
   _clearCallControl() {
