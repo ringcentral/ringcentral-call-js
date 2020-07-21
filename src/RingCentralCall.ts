@@ -408,6 +408,13 @@ export class RingCentralCall extends EventEmitter {
     });
   }
 
+  restoreSessions = async (sessions) => {
+    await this._callControl.restoreSessions(sessions);
+    this._callControl.sessions.forEach((session) => {
+      this._onNewTelephonySession(session, true)
+    });
+  }
+
   _clearCallControl() {
     if (!this._callControl) {
       return;
