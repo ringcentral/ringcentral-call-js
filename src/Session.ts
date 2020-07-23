@@ -211,6 +211,13 @@ export class Session extends EventEmitter {
     return {};
   }
 
+  get data() {
+    if (this.telephonySession) {
+      return this.telephonySession.data;
+    }
+    return null;
+  }
+
   hangup() {
     if (this._webphoneSession) {
       return this._webphoneSession.terminate();
