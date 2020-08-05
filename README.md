@@ -6,12 +6,27 @@
 
 RingCentral Call aims to help developers to make and control call easily with RingCentral Web Phone and Call Control APIs. In this SDK, we use Web Phone for voice transmission, use Call Control API for call control.
 
+## Key features
+
+* Call session management. Combined web phone session from WebRTC and telephony session from the Call Control API
+* Call session event. Handle telephony session event, sync status
+* Session functional API. Request call control API with function
+* Functional API to make and receive calls
+
+*Comparing with the [RingCentral Web Phone](https://github.com/ringcentral/ringcentral-web-phone/) and [Call Control SDK](https://github.com/ringcentral/ringcentral-call-control-js)*
+
+**RingCentral Web Phone**: connect user with the WebRTC and SIP based on WebSockets. Can only control the call in the current web phone device
+
+**RingCentral Call Control**: control calls with RESTful APIs, this doesn’t support voice transmission, support to control all calls in current extension user, or account level (admin).
+
+**RingCentral Call**: voice transmission with WebRTC, control calls with RESTful APIs, support to control all calls in current extension user.
+
 ## Prerequisites
 
 * You will need an active RingCentral account to create RingCentral app. Don't have an account? [Get your Free RingCentral Developer Account Now!](https://developers.ringcentral.com/)
 * A RingCentral app
     * App type: Browser-Based or Server/Web
-    * Permissions: 'Call Control', 'Read Accounts', 'Read Presence', 'Webhook Subscriptions', 'VoIP Calling'
+    * Permissions: 'Call Control', 'Read Accounts', 'Read Presence', 'Webhook Subscriptions' and 'VoIP Calling'
 
 ## Install
 
