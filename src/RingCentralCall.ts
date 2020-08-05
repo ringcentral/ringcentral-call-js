@@ -2,6 +2,7 @@ import { EventEmitter } from 'events';
 import { SDK as RingCentralSDK } from '@ringcentral/sdk';
 import { Subscriptions as RingCentralSubscriptions } from '@ringcentral/subscriptions';
 import RingCentralWebPhone from 'ringcentral-web-phone';
+import { WebPhoneSession } from 'ringcentral-web-phone/lib/session';
 import { RingCentralCallControl, Extension } from 'ringcentral-call-control';
 import { Session, events as sessionEvents, directions } from './Session';
 import { USER_AGENT } from './userAgent';
@@ -13,7 +14,7 @@ export interface MakeCallParams {
   fromNumber?: string;
   deviceId?: string;
   type: 'webphone' | 'callControl';
-  homeContryId?: string;
+  homeCountryId?: string;
 }
 
 export enum events {
@@ -92,11 +93,10 @@ export class RingCentralCall extends EventEmitter {
         this._webphone &&
         this._webphone.userAgent.invite(params.toNumber, {
           fromNumber: params.fromNumber,
-          homeCountryId: params.homeContryId,
+          homeCountryId: params.homeCountryId,
         } as any);
       // @ts-ignore
-      webphoneSession.__rc_direction = directions.OUTBOUND;
-      return this._onNewWebPhoneSession(webphoneSession);
+      return this._onWebPhoneSessionInviteSent(webphoneSession);
     }
     const callParams: any = {};
     if (params.toNumber.length > 5) {
@@ -117,26 +117,18 @@ export class RingCentralCall extends EventEmitter {
     });
     const onSessionDisconnected = () => {
       this._onSessionDisconnected(newSession);
-      // @ts-ignore
       newSession.removeListener(
         sessionEvents.DISCONNECTED,
         onSessionDisconnected
       );
     };
-    // @ts-ignore
     newSession.on(sessionEvents.DISCONNECTED, onSessionDisconnected);
     this._sessions.push(newSession);
     return newSession;
   }
 
-  _onWebPhoneSessionRing = (webphoneSession) => {
-    const [partyData] = extractHeadersData(webphoneSession.request.headers);
-    let session;
-    if (partyData && partyData.sessionId) {
-      session = this.sessions.find(
-        (s) => s.telephonySessionId === partyData.sessionId
-      );
-    }
+  _onWebPhoneSessionRing = (webphoneSession: WebPhoneSession) => {
+    let session = this._getSessionFromWebphoneSession(webphoneSession);
     // @ts-ignore
     webphoneSession.__rc_direction = directions.INBOUND;
     if (session) {
@@ -144,9 +136,40 @@ export class RingCentralCall extends EventEmitter {
       return;
     }
     session = this._onNewWebPhoneSession(webphoneSession);
-    // @ts-ignore
     this.emit(events.NEW, session);
   };
+
+  _onWebPhoneSessionInviteSent = (webphoneSession: WebPhoneSession): Session => {
+    let session = this._getSessionFromWebphoneSession(webphoneSession);
+    if (session && session.webphoneSession) {
+      return session;
+    }
+    // @ts-ignore
+    if (!webphoneSession.__rc_direction) {
+      // @ts-ignore
+      webphoneSession.__rc_direction = directions.OUTBOUND;
+    }
+    if (session) {
+      session.setWebphoneSession(webphoneSession);
+      return session;
+    }
+    session = this._onNewWebPhoneSession(webphoneSession);
+    this.emit(events.NEW, session);
+    return session;
+  }
+
+  _getSessionFromWebphoneSession(webphoneSession: WebPhoneSession) {
+    const [partyData] = extractHeadersData(webphoneSession.request.headers);
+    if (partyData && partyData.sessionId) {
+      return this.sessions.find(
+        (s) => s.telephonySessionId === partyData.sessionId
+      );
+    }
+
+    return this.sessions.find(
+      (s) => s.webphoneSession === webphoneSession
+    );
+  }
 
   _onNewTelephonySession = (telephonySession, fromPreload = false) => {
     let session = this.sessions.find(
@@ -161,14 +184,11 @@ export class RingCentralCall extends EventEmitter {
     });
     const onSessionDisconnected = () => {
       this._onSessionDisconnected(session);
-      // @ts-ignore
       session.removeListener(sessionEvents.DISCONNECTED, onSessionDisconnected);
     };
-    // @ts-ignore
     session.on(sessionEvents.DISCONNECTED, onSessionDisconnected);
     this._sessions.push(session);
     if (!fromPreload) {
-      // @ts-ignore
       this.emit(events.NEW, session);
     }
     return session;
@@ -183,27 +203,23 @@ export class RingCentralCall extends EventEmitter {
     this.callControl.sessions.forEach((telephonySession) => {
       this._onNewTelephonySession(telephonySession, true);
     });
-    // @ts-ignore
     this.emit(events.CALL_CONTROL_READY);
   };
 
   _onWebphoneRegistered = () => {
     if (!this._webphoneRegistered) {
       this._webphoneRegistered = true;
-      // @ts-ignore
       this.emit(events.WEBPHONE_REGISTERED);
     }
   };
 
   _onWebphoneUnregistered = () => {
     this._webphoneRegistered = false;
-    // @ts-ignore
     this.emit(events.WEBPHONE_UNREGISTERED);
   };
 
   _onWebphoneRegistrationFailed = (response, cause) => {
     this._webphoneRegistered = false;
-    // @ts-ignore
     this.emit(events.WEBPHONE_REGISTRATION_FAILED, response, cause);
   };
 
@@ -212,6 +228,7 @@ export class RingCentralCall extends EventEmitter {
     this._webphone = webphone;
     this._webphoneRegistered = webphone.userAgent.registerContext.registered;
     this._webphone.userAgent.on('invite', this._onWebPhoneSessionRing);
+    this._webphone.userAgent.on('inviteSent', this._onWebPhoneSessionInviteSent);
     this._webphone.userAgent.on('registered', this._onWebphoneRegistered);
     this._webphone.userAgent.on('unregistered', this._onWebphoneUnregistered);
     this._webphone.userAgent.on(
@@ -224,22 +241,22 @@ export class RingCentralCall extends EventEmitter {
     if (!this._webphone) {
       return;
     }
-    // @ts-ignore
     this._webphone.userAgent.removeListener(
       'invite',
       this._onWebPhoneSessionRing
     );
-    // @ts-ignore
+    this._webphone.userAgent.removeListener(
+      'inviteSent',
+      this._onWebPhoneSessionInviteSent
+    );
     this._webphone.userAgent.removeListener(
       'registered',
       this._onWebphoneRegistered
     );
-    // @ts-ignore
     this._webphone.userAgent.removeListener(
       'unregistered',
       this._onWebphoneUnregistered
     );
-    // @ts-ignore
     this._webphone.userAgent.removeListener(
       'registrationFailed',
       this._onWebphoneRegistrationFailed
@@ -260,9 +277,7 @@ export class RingCentralCall extends EventEmitter {
     } else {
       this._callControlNotificationReady = true;
     }
-    // @ts-ignore
     this._callControl.on('new', this._onNewTelephonySession);
-    // @ts-ignore
     this._callControl.on('initialized', this._onCallControlInitialized);
   }
 
@@ -321,7 +336,6 @@ export class RingCentralCall extends EventEmitter {
 
   _onSubscriptionCreateSuccess = () => {
     this._callControlNotificationReady = true;
-    // @ts-ignore
     this.emit(events.CALL_CONTROL_NOTIFICATION_REDY);
     this._sdk
       .cache()
@@ -330,7 +344,6 @@ export class RingCentralCall extends EventEmitter {
 
   _onSubscriptionCreateError = () => {
     this._callControlNotificationReady = false;
-    // @ts-ignore
     this.emit(events.CALL_CONTROL_NOTIFICATION_ERROR);
     this._sdk
       .platform()
@@ -347,7 +360,6 @@ export class RingCentralCall extends EventEmitter {
 
   _onSubscriptionRenewFail = () => {
     this._callControlNotificationReady = false;
-    // @ts-ignore
     this.emit(events.CALL_CONTROL_NOTIFICATION_ERROR);
     this._sdk
       .platform()
@@ -419,7 +431,6 @@ export class RingCentralCall extends EventEmitter {
     if (!this._callControl) {
       return;
     }
-    // @ts-ignore
     this._callControl.removeListener('new', this._onNewTelephonySession);
     this._callControl = null;
   }
@@ -428,7 +439,6 @@ export class RingCentralCall extends EventEmitter {
     this._clearWebphone();
     this._clearCallControl();
     this._clearSubscriptionHander();
-    // @ts-ignore
     this.removeAllListeners();
     this.sessions.forEach((session) => {
       session.hangup();
