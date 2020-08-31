@@ -11,6 +11,8 @@ import { extractHeadersData, getWebphoneReplyMessageOption } from './utils'
 export enum events {
   DISCONNECTED ='disconnected',
   STATUS = 'status',
+  RECORDINGS = 'recordings',
+  MUTED = 'muted'
 };
 
 export enum directions {
@@ -97,6 +99,14 @@ export class Session extends EventEmitter {
         }
         this._telephonySession = null;
       }
+    })
+
+    this.telephonySession.on(events.RECORDINGS, ({ party }) => {
+      this.emit(events.RECORDINGS, { party });
+    })
+
+    this.telephonySession.on(events.MUTED, ({ party }) => {
+      this.emit(events.MUTED, { party });
     })
   }
 
