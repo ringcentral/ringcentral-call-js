@@ -20,7 +20,7 @@
     "test:showCoverage": "cat ./coverage/lcov.info | coveralls"
   },
   "peerDependencies": {
-    "ringcentral-call-control": "^0.2.1",
+    "ringcentral-call-control": "^0.2.2",
     "ringcentral-web-phone": "^0.7.6"
   },
   "devDependencies": {
@@ -32,7 +32,7 @@
     "coveralls": "^3.0.9",
     "http-server": "^0.12.3",
     "jest": "^25.4.0",
-    "ringcentral-call-control": "^0.2.1",
+    "ringcentral-call-control": "^0.2.2",
     "ringcentral-web-phone": "^0.7.6",
     "ts-jest": "^25.4.0",
     "ts-loader": "^5.3.3",

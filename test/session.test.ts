@@ -171,6 +171,24 @@ describe('RingCentral Call :: Session', () => {
       expect(emited).toEqual(true);
     });
 
+    test('should update recordings successfully', () => {
+      let emited = false;
+      session.on(events.RECORDINGS, () => {
+        emited = true;
+      });
+      telephonySession.trigger('recordings', { party: {} });
+      expect(emited).toEqual(true);
+    });
+
+    test('should update mute successfully', () => {
+      let emited = false;
+      session.on(events.MUTED, () => {
+        emited = true;
+      });
+      telephonySession.trigger('muted', { party: {} });
+      expect(emited).toEqual(true);
+    });
+
     test('should emit disconnected and remove telephonySession successfully on disconnected without webphoneSession', () => {
       let emited = false;
       telephonySession.setParty({
