@@ -1,4 +1,4 @@
-import { RingCentralCall } from '../src/RingCentralCall';
+import { RingCentralCall, events } from '../src/RingCentralCall';
 import { directions, events as sessionEvents } from '../src/Session';
 import RingCentralWebPhone from './__mocks__/ringcentral-web-phone';
 import { WebPhoneSession } from './__mocks__/ringcentral-web-phone/lib/Session';
@@ -21,33 +21,33 @@ describe('RingCentral Call ::', () => {
         subscriptions,
       });
     });
-  
+
     test('it should be initialized', async () => {
       expect(rcCall.webphone).toEqual(webphone);
       expect(!!rcCall.callControl).toEqual(true);
       expect(rcCall.webphoneRegistered).toEqual(false);
       expect(rcCall.callControlReady).toEqual(false);
     });
-  
+
     test('webphoneRegistered should be true after registered event', async () => {
       webphone.userAgent.trigger('registered');
       expect(rcCall.webphoneRegistered).toEqual(true);
     });
-  
+
     test('webphoneRegistered should be false after unregistered event', async () => {
       webphone.userAgent.trigger('registered');
       expect(rcCall.webphoneRegistered).toEqual(true);
       webphone.userAgent.trigger('unregistered');
       expect(rcCall.webphoneRegistered).toEqual(false);
     });
-  
+
     test('webphoneRegistered should be false after registrationFailed event', async () => {
       webphone.userAgent.trigger('registered');
       expect(rcCall.webphoneRegistered).toEqual(true);
       webphone.userAgent.trigger('registrationFailed');
       expect(rcCall.webphoneRegistered).toEqual(false);
     });
-  
+
     test('should be reload sessions after call control initialized', async () => {
       rcCall.callControl.setSessions([
         new TelephonySession({
@@ -61,7 +61,7 @@ describe('RingCentral Call ::', () => {
       expect(rcCall.sessions.length).toEqual(1);
       expect(rcCall.devices).toEqual(rcCall.callControl.devices);
     });
-  
+
     test('should make call fail with web phone unregistered', async () => {
       let hasError = false
       try {
@@ -73,7 +73,7 @@ describe('RingCentral Call ::', () => {
       }
       expect(hasError).toEqual(true);
     });
-  
+
     test('should make call successfull with web phone mode', async () => {
       webphone.userAgent.trigger('registered')
       const session = await rcCall.makeCall(
@@ -83,7 +83,7 @@ describe('RingCentral Call ::', () => {
       expect(session.direction).toEqual(directions.OUTBOUND);
       expect(!!session.webphoneSession).toEqual(true);
     });
-  
+
     test('should remove session when session disconnected with web phone mode', async () => {
       webphone.userAgent.trigger('registered')
       const session = await rcCall.makeCall(
@@ -93,7 +93,7 @@ describe('RingCentral Call ::', () => {
       session.emit(sessionEvents.DISCONNECTED);
       expect(rcCall.sessions.length).toEqual(0);
     });
-  
+
     test('should make call successfully with callControl mode and extensionNumber', async () => {
       const session = await rcCall.makeCall(
         { toNumber: '101', deviceId: '1111', type: 'callControl' }
@@ -102,7 +102,7 @@ describe('RingCentral Call ::', () => {
       expect(session.direction).toEqual(directions.OUTBOUND);
       expect(!!session.telephonySession).toEqual(true);
     });
-  
+
     test('should make call successfully with callControl mode and phoneNumber', async () => {
       const session = await rcCall.makeCall(
         { toNumber: '1234567890', deviceId: '1111', type: 'callControl' }
@@ -111,7 +111,7 @@ describe('RingCentral Call ::', () => {
       expect(session.direction).toEqual(directions.OUTBOUND);
       expect(!!session.telephonySession).toEqual(true);
     });
-  
+
     test('should remove session when session disconnected in callControl mode', async () => {
       webphone.userAgent.trigger('registered')
       const session = await rcCall.makeCall(
@@ -121,7 +121,7 @@ describe('RingCentral Call ::', () => {
       session.emit(sessionEvents.DISCONNECTED);
       expect(rcCall.sessions.length).toEqual(0);
     });
-  
+
     test('should add new session when web phone get invite event and not existed session', () => {
       const webphoneSession = new WebPhoneSession({
         id: '123',
@@ -134,7 +134,7 @@ describe('RingCentral Call ::', () => {
       expect(rcCall.sessions.length).toEqual(1);
       expect(rcCall.sessions[0].direction).toEqual(directions.INBOUND);
     });
-  
+
     test('should add new session when call control get new event and not existed session', () => {
       const telphonySession = new TelephonySession({
         id: '123',
@@ -146,7 +146,7 @@ describe('RingCentral Call ::', () => {
       rcCall.callControl.trigger('new', telphonySession);
       expect(rcCall.sessions.length).toEqual(1);
     });
-  
+
     test('should connect webphone session when web phone get invite event and existed session', () => {
       const telephonySession = new TelephonySession({
         id: '123',
@@ -167,7 +167,7 @@ describe('RingCentral Call ::', () => {
       expect(rcCall.sessions.length).toEqual(1);
       expect(rcCall.sessions[0].webphoneSession).toEqual(webphoneSession);
     });
-  
+
     test('should connect telephony session when call control get new event and existed session', () => {
       const webphoneSession = new WebPhoneSession({
         id: '123',
@@ -188,38 +188,38 @@ describe('RingCentral Call ::', () => {
       expect(rcCall.sessions.length).toEqual(1);
       expect(rcCall.sessions[0].telephonySession).toEqual(telephonySession);
     });
-  
+
     test('should clean webphone and call control when disposed', () => {
       rcCall.dispose();
       expect(rcCall.sessions.length).toEqual(0);
       expect(rcCall.webphone).toEqual(null);
       expect(rcCall.callControl).toEqual(null);
     });
-  
+
     test('callControlNotification should ready when subsciption success', () => {
       expect(rcCall.callControlNotificationReady).toEqual(false);
       rcCall._subscription.trigger(rcCall._subscription.events.subscribeSuccess);
       expect(rcCall.callControlNotificationReady).toEqual(true);
     });
-  
+
     test('callControlNotification should false when subsciption error', () => {
       expect(rcCall.callControlNotificationReady).toEqual(false);
       rcCall._subscription.trigger(rcCall._subscription.events.subscribeError);
       expect(rcCall.callControlNotificationReady).toEqual(false);
     });
-  
+
     test('callControlNotification should false when subsciption renew error', () => {
       expect(rcCall.callControlNotificationReady).toEqual(false);
       rcCall._subscription.trigger(rcCall._subscription.events.renewError);
       expect(rcCall.callControlNotificationReady).toEqual(false);
     });
-  
+
     test('should call resubscribe when subsciption auto renew error', () => {
       rcCall._subscription.resubscribe = jest.fn();
       rcCall._subscription.trigger(rcCall._subscription.events.automaticRenewError);
       expect(rcCall._subscription.resubscribe.mock.calls.length).toEqual(1);
     });
-  
+
     test('should call refreshDevice in call control when refreshDevice', () => {
       rcCall.callControl.refreshDevices = jest.fn();
       rcCall.refreshDevices();
@@ -278,7 +278,7 @@ describe('RingCentral Call ::', () => {
       const subscriptions = new Subscriptions();
       rcCall = new RingCentralCall({ sdk, subscriptions });
     });
-  
+
     test('it should be initialized', async () => {
       expect(!!rcCall.callControl).toEqual(true);
       expect(rcCall.webphoneRegistered).toEqual(false);
@@ -307,12 +307,56 @@ describe('RingCentral Call ::', () => {
         userAgent: 'TestUserAgent'
       });
     });
-  
+
     test('it should be initialized', async () => {
       expect(!!rcCall.callControl).toEqual(true);
       expect(rcCall.webphoneRegistered).toEqual(false);
       expect(rcCall.callControlReady).toEqual(false);
       expect(rcCall._userAgent).toContain('TestUserAgent');
+    });
+  });
+
+  describe("Webphone invite & invite sent emit event", () => {
+    beforeEach(() => {
+      const sdk = new RingCentral({}); // mocked
+      const subscriptions = new Subscriptions();
+      webphone = new RingCentralWebPhone(); // mocked
+      rcCall = new RingCentralCall({
+        webphone,
+        sdk,
+        subscriptions,
+        userAgent: "TestUserAgent",
+      });
+    });
+
+    test("trigger invite should emit webphone-invite event", async () => {
+      const webphoneSession = new WebPhoneSession({
+        id: "123",
+        toNumber: "101",
+        fromNumber: "102",
+        direction: directions.INBOUND,
+      });
+      let invite = false;
+      rcCall.on(events.WEBPHONE_INVITE, () => {
+        invite = true;
+      });
+      webphone.userAgent.trigger("invite", webphoneSession);
+      expect(invite).toBe(true);
+    });
+
+    test("trigger invite sent should emit webphone-invite-sent event", async () => {
+      const webphoneSession = new WebPhoneSession({
+        id: "123",
+        toNumber: "101",
+        fromNumber: "102",
+        direction: directions.OUTBOUND,
+      });
+      let inviteSent = false;
+      rcCall.on(events.WEBPHONE_INVITE_SENT, () => {
+        inviteSent = true;
+      });
+      webphone.userAgent.trigger("inviteSent", webphoneSession);
+      expect(inviteSent).toBe(true);
     });
   });
 });
