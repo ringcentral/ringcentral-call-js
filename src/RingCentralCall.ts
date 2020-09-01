@@ -25,6 +25,8 @@ export enum events {
   CALL_CONTROL_READY = 'call-control-ready',
   CALL_CONTROL_NOTIFICATION_REDY = 'call-control-notification-ready',
   CALL_CONTROL_NOTIFICATION_ERROR = 'call-control-notification-error',
+  WEBPHONE_INVITE = 'webphone-invite',
+  WEBPHONE_INVITE_SENT = 'webphone-invite-sent',
 }
 
 export class RingCentralCall extends EventEmitter {
@@ -128,6 +130,7 @@ export class RingCentralCall extends EventEmitter {
   }
 
   _onWebPhoneSessionRing = (webphoneSession: WebPhoneSession) => {
+    this.emit(events.WEBPHONE_INVITE, webphoneSession);
     let session = this._getSessionFromWebphoneSession(webphoneSession);
     // @ts-ignore
     webphoneSession.__rc_direction = directions.INBOUND;
@@ -140,6 +143,7 @@ export class RingCentralCall extends EventEmitter {
   };
 
   _onWebPhoneSessionInviteSent = (webphoneSession: WebPhoneSession): Session => {
+    this.emit(events.WEBPHONE_INVITE_SENT, webphoneSession);
     let session = this._getSessionFromWebphoneSession(webphoneSession);
     if (session && session.webphoneSession) {
       return session;
