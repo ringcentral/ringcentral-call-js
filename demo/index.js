@@ -6,6 +6,7 @@ $(function() {
   var rcWebPhone = null;
   var rcCall = null;
   var redirectUri = getRedirectUri();
+  var defaultClientId = '';
 
   var $app = $('#app');
   var $authFlowTemplate = $('#template-auth-flow');
@@ -26,14 +27,14 @@ $(function() {
     return $($tpl.html());
   }
 
-  function initCallSDK({ appKey }) {
+  function initCallSDK({ clientId }) {
     return platform.post('/restapi/v1.0/client-info/sip-provision', {
       sipInfo: [{transport: 'WSS'}]
     }).then(function (res) {
       return res.json()
     }).then(function(sipProvision) {
       rcWebPhone = new RingCentral.WebPhone(sipProvision, {
-        appKey,
+        clientId,
         appName: 'RingCentral Call Demo',
         appVersion: '0.0.1',
         logLevel: 2
@@ -353,20 +354,18 @@ $(function() {
     })
   }
 
-  function onLoginSuccess(server, appKey, appSecret) {
-    localStorage.setItem('rcCallControlServer', server || '');
-    localStorage.setItem('rcCallControlAppKey', appKey || '');
-    localStorage.setItem('rcCallControlAppSecret', appSecret || '');
-    initCallSDK({ appKey }).then(function () {
+  function onLoginSuccess(server, clientId) {
+    localStorage.setItem('rcCallDemoServer', server || '');
+    localStorage.setItem('rcCallDemoClientId', clientId || '');
+    initCallSDK({ clientId }).then(function () {
       showCallPage();
     });
   }
 
-  function show3LeggedLogin(server, appKey, appSecret) {
+  function show3LeggedLogin(server, clientId) {
     rcsdk = new RingCentral.SDK({
-      cachePrefix: 'rc-call',
-      clientId: appKey,
-      clientSecret: appSecret,
+      cachePrefix: 'rc-call-demo',
+      clientId: clientId,
       server: server,
       redirectUri: redirectUri
     });
@@ -374,13 +373,13 @@ $(function() {
       sdk: rcsdk
     });
 
-    platform = rcsdk.platform(server, appKey, appSecret);
+    platform = rcsdk.platform();
 
-    var loginUrl = platform.loginUrl({ implicit: !appSecret });
+    var loginUrl = platform.loginUrl({ usePKCE: true });
     platform.loggedIn().then(function(isLogin) {
       loggedIn = isLogin;
       if (loggedIn) {
-        onLoginSuccess(server, appKey, appSecret);
+        onLoginSuccess(server, clientId);
         return;
       }
       platform.loginWindow({ url: loginUrl })
@@ -388,7 +387,7 @@ $(function() {
           return platform.login(loginOptions);
         })
         .then(function() {
-          onLoginSuccess(server, appKey, appSecret);
+          onLoginSuccess(server, clientId);
         })
         .catch(function(e) {
           console.error(e.stack || e);
@@ -399,18 +398,16 @@ $(function() {
   function init() {
     var $authForm = cloneTemplate($authFlowTemplate);
     var $server = $authForm.find('input[name=server]').eq(0);
-    var $appKey = $authForm.find('input[name=appKey]').eq(0);
-    var $appSecret = $authForm.find('input[name=appSecret]').eq(0);
+    var $clientId = $authForm.find('input[name=clientId]').eq(0);
     var $redirectUri = $authForm.find('input[name=redirectUri]').eq(0);
-    $server.val(localStorage.getItem('rcCallControlServer') || RingCentral.SDK.server.sandbox);
-    $appKey.val(localStorage.getItem('rcCallControlAppKey') || '');
-    $appSecret.val(localStorage.getItem('rcCallControlAppSecret') || '');
+    $server.val(localStorage.getItem('rcCallDemoServer') || RingCentral.SDK.server.sandbox);
+    $clientId.val(localStorage.getItem('rcCallDemoClientId') || defaultClientId);
     $redirectUri.val(redirectUri);
 
     $authForm.on('submit', function(e) {
       e.preventDefault();
       e.stopPropagation();
-      show3LeggedLogin($server.val(), $appKey.val(), $appSecret.val());
+      show3LeggedLogin($server.val(), $clientId.val());
     });
 
     $app.empty().append($authForm);
