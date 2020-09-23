@@ -279,17 +279,17 @@ export class Session extends EventEmitter {
   }
 
   forward(forwardNumber: string, acceptOptions?: any, transferOptions?: any) {
-    if (this._telephonySession) {
-      const params : any = {};
-      if (forwardNumber.length > 5) {
-        params.phoneNumber = forwardNumber;
-      } else {
-        params.extensionNumber = forwardNumber;
-      }
-      return this._telephonySession.forward(params);
+    if (this._webphoneSession) {
+      // @ts-ignore
+      return this._webphoneSession.forward(forwardNumber, acceptOptions, transferOptions);
     }
-    // @ts-ignore
-    return this._webphoneSession.forward(forwardNumber, acceptOptions, transferOptions);
+    const params : any = {};
+    if (forwardNumber.length > 5) {
+      params.phoneNumber = forwardNumber;
+    } else {
+      params.extensionNumber = forwardNumber;
+    }
+    return this._telephonySession.forward(params);
   }
 
   transfer(transferNumber: string, transferOptions?: any) {
