@@ -27,6 +27,8 @@ export class Session extends EventEmitter {
   private _activeCallId: string;
   private _webphoneSessionConnected: boolean = false;
   private _status: PartyStatusCode;
+  private _sessionId: string;
+  private _startTime: number;
 
   constructor({
     webphoneSession,
@@ -52,6 +54,11 @@ export class Session extends EventEmitter {
   _onNewWebPhoneSession() {
     if (this._webphoneSession.request) {
       this._setIdsFromWebPhoneSessionHeaders(this.webphoneSession.request.headers);
+    }
+    // webphone session's start time should alway replace telephony session's start time, because it counts
+    // start from call was answered, so will be more accurate
+    if (this._webphoneSession.startTime) {
+      this._startTime = (new Date(this._webphoneSession.startTime)).getTime();
     }
     this.webphoneSession.on('accepted', (incomingResponse) => {
       console.log('accepted');
@@ -79,8 +86,17 @@ export class Session extends EventEmitter {
 
   _onNewTelephonySession() {
     this._telephonySessionId = this.telephonySession.id;
+    this._sessionId = this.telephonySession.data.sessionId;
     if (this.telephonySession.party) {
       this._status = this.telephonySession.party.status.code;
+    }
+    // when reload then use get session status API's creation time as call's start time
+    if(this._telephonySession.data.creationTime && !this._startTime) {
+      this._startTime = (new Date(this._telephonySession.data.creationTime)).getTime();
+    }
+    // use first telephony session event's event time as call's start time
+    if(this._telephonySession.data.eventTime && !this._startTime) {
+      this._startTime = (new Date(this._telephonySession.data.eventTime)).getTime();
     }
     this.telephonySession.on('status', ({ party }) => {
       const myParty = this.telephonySession.party;
@@ -156,6 +172,10 @@ export class Session extends EventEmitter {
     return this._telephonySessionId;
   }
 
+  get sessionId() {
+    return this._sessionId || null;
+  }
+
   get id() {
     return this._telephonySessionId;
   }
@@ -226,6 +246,10 @@ export class Session extends EventEmitter {
       return this.telephonySession.data;
     }
     return null;
+  }
+
+  get startTime() {
+    return this._startTime || null;
   }
 
   hangup() {
