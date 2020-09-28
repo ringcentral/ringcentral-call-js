@@ -90,13 +90,8 @@ export class Session extends EventEmitter {
     if (this.telephonySession.party) {
       this._status = this.telephonySession.party.status.code;
     }
-    // when reload then use get session status API's creation time as call's start time
     if(this._telephonySession.data.creationTime && !this._startTime) {
       this._startTime = (new Date(this._telephonySession.data.creationTime)).getTime();
-    }
-    // use first telephony session event's event time as call's start time
-    if(this._telephonySession.data.eventTime && !this._startTime) {
-      this._startTime = (new Date(this._telephonySession.data.eventTime)).getTime();
     }
     this.telephonySession.on('status', ({ party }) => {
       const myParty = this.telephonySession.party;

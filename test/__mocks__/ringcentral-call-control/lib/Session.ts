@@ -60,6 +60,10 @@ export class Session {
     return this._recordings;
   }
 
+  get data() {
+    return {};
+  }
+
   setParty(party) {
     this._party = party;
   }
