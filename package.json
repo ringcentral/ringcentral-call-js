@@ -20,8 +20,8 @@
     "test:showCoverage": "cat ./coverage/lcov.info | coveralls"
   },
   "peerDependencies": {
-    "ringcentral-call-control": "^0.2.3",
-    "ringcentral-web-phone": "^0.7.6"
+    "ringcentral-call-control": "^0.2.4",
+    "ringcentral-web-phone": "^0.8.3"
   },
   "devDependencies": {
     "@ringcentral/sdk": "^4.3.2",
@@ -32,8 +32,8 @@
     "coveralls": "^3.0.9",
     "http-server": "^0.12.3",
     "jest": "^25.4.0",
-    "ringcentral-call-control": "^0.2.2",
-    "ringcentral-web-phone": "^0.7.6",
+    "ringcentral-call-control": "^0.2.4",
+    "ringcentral-web-phone": "^0.8.3",
     "ts-jest": "^25.4.0",
     "ts-loader": "^5.3.3",
     "tslint": "^6.1.1",

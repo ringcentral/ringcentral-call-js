@@ -219,6 +219,7 @@ $(function() {
     var $to = $modal.find('input[name=to]').eq(0);
     var $myStatus = $modal.find('input[name=myStatus]').eq(0);
     var $otherStatus = $modal.find('input[name=otherStatus]').eq(0);
+    var $switchBtn = $modal.find('.switch').eq(0);
 
     function refreshPartyInfo() {
       $from.val(session.from.phoneNumber);
@@ -283,17 +284,29 @@ $(function() {
       e.stopPropagation();
       var phoneNumber = $transfer.val();
       session.transfer(phoneNumber).then(function () {
-        console.log('transfered');
+        console.log('transfer success');
       }).catch(function(e) {
         console.error('transfer failed', e.stack || e);
       });
     });
     session.on('status', function() {
-      if (session.status === 'Disconnected') {
-        $modal.modal('hide');
-        return;
-      }
       refreshPartyInfo();
+    });
+    session.on('disconnected', function() {
+      $modal.modal('hide');
+    });
+    $switchBtn.css('display', 'inline-block');
+    if (session.webphoneSession) {
+      $switchBtn.css('display', 'none');
+    }
+    $switchBtn.on('click', function () {
+      $switchBtn.html('Switching')
+      rcCall.switchCallFrom(session.id).finally(function () {
+        $switchBtn.html('Switch');
+      });
+    });
+    session.on('webphoneSessionConnected', function () {
+      $switchBtn.css('display', 'none');
     });
   }
 
@@ -351,7 +364,7 @@ $(function() {
         $modal.modal('hide');
         showCallControlModal(session);
       }
-    })
+    });
   }
 
   function onLoginSuccess(server, clientId) {
