@@ -3,6 +3,7 @@ import { SDK as RingCentralSDK } from '@ringcentral/sdk';
 import { Subscriptions as RingCentralSubscriptions } from '@ringcentral/subscriptions';
 import RingCentralWebPhone from 'ringcentral-web-phone';
 import { WebPhoneSession } from 'ringcentral-web-phone/lib/session';
+import { InviteOptions } from 'ringcentral-web-phone/lib/userAgent';
 import { RingCentralCallControl, Extension } from 'ringcentral-call-control';
 import { Session, events as sessionEvents, directions } from './Session';
 import { USER_AGENT } from './userAgent';
@@ -42,11 +43,8 @@ export class RingCentralCall extends EventEmitter {
   private _callControlNotificationReady: boolean;
   private _enableSubscriptionHander: boolean;
   private _userAgent: string;
-  private _accountLevel: boolean;
-  private _preloadSessions: boolean;
-  private _preloadDevices: boolean;
-  private _extensionInfo: any;
   private _callControlOptions: { accountLevel?: boolean; preloadSessions?: boolean; preloadDevices?: boolean; extensionInfo?: any; };
+  private _webphoneInviteFromSDK: boolean;
 
   constructor({
     webphone,
@@ -91,14 +89,16 @@ export class RingCentralCall extends EventEmitter {
       if (!this.webphoneRegistered) {
         throw new Error('webphone is not registered');
       }
+      this._webphoneInviteFromSDK = true;
       const webphoneSession =
         this._webphone &&
         this._webphone.userAgent.invite(params.toNumber, {
           fromNumber: params.fromNumber,
           homeCountryId: params.homeCountryId,
         } as any);
+      this._webphoneInviteFromSDK = false;
       // @ts-ignore
-      return this._onWebPhoneSessionInviteSent(webphoneSession);
+      return this._onWebPhoneSessionInvite(webphoneSession);
     }
     const callParams: any = {};
     if (params.toNumber.length > 5) {
@@ -118,6 +118,9 @@ export class RingCentralCall extends EventEmitter {
       webphoneSession,
     });
     const onSessionDisconnected = () => {
+      if (newSession.telephonySession) {
+        return;
+      }
       this._onSessionDisconnected(newSession);
       newSession.removeListener(
         sessionEvents.DISCONNECTED,
@@ -142,7 +145,14 @@ export class RingCentralCall extends EventEmitter {
     this.emit(events.NEW, session);
   };
 
-  _onWebPhoneSessionInviteSent = (webphoneSession: WebPhoneSession): Session => {
+  _onWebPhoneSessionInviteSent = (webphoneSession: WebPhoneSession) => {
+    if (this._webphoneInviteFromSDK) {
+      return;
+    }
+    this._onWebPhoneSessionInvite(webphoneSession);
+  }
+
+  _onWebPhoneSessionInvite(webphoneSession: WebPhoneSession): Session {
     this.emit(events.WEBPHONE_INVITE_SENT, webphoneSession);
     let session = this._getSessionFromWebphoneSession(webphoneSession);
     if (session && session.webphoneSession) {
@@ -163,10 +173,16 @@ export class RingCentralCall extends EventEmitter {
   }
 
   _getSessionFromWebphoneSession(webphoneSession: WebPhoneSession) {
-    const [partyData] = extractHeadersData(webphoneSession.request.headers);
-    if (partyData && partyData.sessionId) {
+    // @ts-ignore
+    let telephonySessionId = webphoneSession.__rc_telephony_session_id;
+    if (!telephonySessionId) {
+      const [partyData] = extractHeadersData(webphoneSession.request.headers);
+      telephonySessionId = partyData && partyData.sessionId;
+    }
+
+    if (telephonySessionId) {
       return this.sessions.find(
-        (s) => s.telephonySessionId === partyData.sessionId
+        (s) => s.telephonySessionId === telephonySessionId
       );
     }
 
@@ -187,6 +203,9 @@ export class RingCentralCall extends EventEmitter {
       telephonySession,
     });
     const onSessionDisconnected = () => {
+      if (session.webphoneSession) {
+        return;
+      }
       this._onSessionDisconnected(session);
       session.removeListener(sessionEvents.DISCONNECTED, onSessionDisconnected);
     };
@@ -452,6 +471,25 @@ export class RingCentralCall extends EventEmitter {
 
   refreshDevices() {
     return this._callControl.refreshDevices();
+  }
+
+  async switchCallFrom(telephonySessionId: string, options?: InviteOptions) {
+    if (!this.webphone) {
+      throw new Error('Webphone instance is required.');
+    }
+    if (!this.webphoneRegistered) {
+      throw new Error('Webphone instance is not unregistered now.');
+    }
+    const presenceRes = await this._sdk.platform().get('/restapi/v1.0/account/~/extension/~/presence?sipData=true&detailedTelephonyPresence=true');
+    const presence = await presenceRes.json();
+    const activeCalls = presence.activeCalls;
+    const activeCall = activeCalls.find(call => call.telephonySessionId === telephonySessionId);
+    this._webphoneInviteFromSDK = true;
+    const webphoneSession = this.webphone.userAgent.switchFrom(activeCall, options);
+    // @ts-ignore
+    webphoneSession.__rc_telephony_session_id = telephonySessionId;
+    this._webphoneInviteFromSDK = false;
+    return this._onWebPhoneSessionInvite(webphoneSession);
   }
 
   get webphone() {

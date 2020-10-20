@@ -12,7 +12,8 @@ export enum events {
   DISCONNECTED ='disconnected',
   STATUS = 'status',
   RECORDINGS = 'recordings',
-  MUTED = 'muted'
+  MUTED = 'muted',
+  WEBPHONE_SESSION_CONNECTED = 'webphoneSessionConnected',
 };
 
 export enum directions {
@@ -81,7 +82,7 @@ export class Session extends EventEmitter {
       this._webphoneSession = null;
     })
     this._webphoneSessionConnected = true;
-    this.emit('webphoneSessionConnected');
+    this.emit(events.WEBPHONE_SESSION_CONNECTED);
   }
 
   _onNewTelephonySession() {
@@ -101,7 +102,9 @@ export class Session extends EventEmitter {
       this.emit(events.STATUS, { party, status: this._status });
       if (
         myParty &&
-        myParty.status.code === PartyStatusCode.disconnected
+        myParty.status.code === PartyStatusCode.disconnected &&
+        myParty.status.reason !== 'Pickup' && // don't end when call switched
+        myParty.status.reason !== 'CallSwitch' // don't end when call switched
       ) {
         if (!this._webphoneSession) {
           this.emit(events.DISCONNECTED);
