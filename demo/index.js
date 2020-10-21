@@ -301,7 +301,7 @@ $(function() {
     }
     $switchBtn.on('click', function () {
       $switchBtn.html('Switching')
-      rcCall.switchCallFrom(session.id).finally(function () {
+      rcCall.switchCall(session.id).finally(function () {
         $switchBtn.html('Switch');
       });
     });

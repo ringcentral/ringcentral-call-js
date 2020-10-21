@@ -3,7 +3,7 @@ import { SDK as RingCentralSDK } from '@ringcentral/sdk';
 import { Subscriptions as RingCentralSubscriptions } from '@ringcentral/subscriptions';
 import RingCentralWebPhone from 'ringcentral-web-phone';
 import { WebPhoneSession } from 'ringcentral-web-phone/lib/session';
-import { InviteOptions } from 'ringcentral-web-phone/lib/userAgent';
+import { InviteOptions, ActiveCallInfo as ActiveCallInfoBase } from 'ringcentral-web-phone/lib/userAgent';
 import { RingCentralCallControl, Extension } from 'ringcentral-call-control';
 import { Session, events as sessionEvents, directions } from './Session';
 import { USER_AGENT } from './userAgent';
@@ -28,6 +28,10 @@ export enum events {
   CALL_CONTROL_NOTIFICATION_ERROR = 'call-control-notification-error',
   WEBPHONE_INVITE = 'webphone-invite',
   WEBPHONE_INVITE_SENT = 'webphone-invite-sent',
+}
+
+export interface ActiveCallInfo extends ActiveCallInfoBase {
+  telephonySessionId: string;
 }
 
 export class RingCentralCall extends EventEmitter {
@@ -84,12 +88,12 @@ export class RingCentralCall extends EventEmitter {
   async makeCall(params: MakeCallParams) {
     if (params.type === 'webphone') {
       if (!this.webphone) {
-        throw new Error('webphone should not be null');
+        throw new Error('Web phone instance is required');
       }
       if (!this.webphoneRegistered) {
         throw new Error('webphone is not registered');
       }
-      this._webphoneInviteFromSDK = true;
+      this._webphoneInviteFromSDK = true; // avoid trigger _onWebPhoneSessionInvite twice
       const webphoneSession =
         this._webphone &&
         this._webphone.userAgent.invite(params.toNumber, {
@@ -473,21 +477,28 @@ export class RingCentralCall extends EventEmitter {
     return this._callControl.refreshDevices();
   }
 
-  async switchCallFrom(telephonySessionId: string, options?: InviteOptions) {
+  /**
+   *  Switch call voice transmission from other tabs or devices to current tab
+   */
+  async switchCall(telephonySessionId: string, options?: InviteOptions): Promise<Session> {
+    const presenceRes = await this._sdk.platform().get('/restapi/v1.0/account/~/extension/~/presence?sipData=true&detailedTelephonyPresence=true');
+    const presence = await presenceRes.json();
+    const activeCalls = presence.activeCalls;
+    const activeCall = activeCalls.find(call => call.telephonySessionId === telephonySessionId);
+    return this.switchCallFromActiveCall(activeCall, options);
+  }
+
+  switchCallFromActiveCall(activeCall: ActiveCallInfo, options?: InviteOptions): Session {
     if (!this.webphone) {
       throw new Error('Webphone instance is required.');
     }
     if (!this.webphoneRegistered) {
       throw new Error('Webphone instance is not unregistered now.');
     }
-    const presenceRes = await this._sdk.platform().get('/restapi/v1.0/account/~/extension/~/presence?sipData=true&detailedTelephonyPresence=true');
-    const presence = await presenceRes.json();
-    const activeCalls = presence.activeCalls;
-    const activeCall = activeCalls.find(call => call.telephonySessionId === telephonySessionId);
     this._webphoneInviteFromSDK = true;
     const webphoneSession = this.webphone.userAgent.switchFrom(activeCall, options);
     // @ts-ignore
-    webphoneSession.__rc_telephony_session_id = telephonySessionId;
+    webphoneSession.__rc_telephony_session_id = activeCall.telephonySessionId;
     this._webphoneInviteFromSDK = false;
     return this._onWebPhoneSessionInvite(webphoneSession);
   }
@@ -509,7 +520,7 @@ export class RingCentralCall extends EventEmitter {
   }
 
   get callControlReady() {
-    return !!(this._callControl && this._callControl.ready);
+    return this._callControl.ready;
   }
 
   get callControlNotificationReady() {
@@ -517,6 +528,6 @@ export class RingCentralCall extends EventEmitter {
   }
 
   get devices() {
-    return (this._callControl && this._callControl.devices) || [];
+    return this._callControl.devices || [];
   }
 }

@@ -265,10 +265,12 @@ export class Session extends EventEmitter {
   }
 
   unhold() {
+    if (this._webphoneSession && this._webphoneSession.localHold) {
+      return this._webphoneSession.unhold();
+    }
     if (this._telephonySession) {
       return this._telephonySession.unhold();
     }
-    return this._webphoneSession.unhold();
   }
 
   toVoicemail() {
