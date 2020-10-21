@@ -41,7 +41,7 @@ export class RingCentralCall extends EventEmitter {
   private _callControl: RingCentralCallControl;
   private _subscription: any;
   private _subscriptionCacheKey: string = 'rc-call-subscription-key';
-  private _subscriotionEventFilters: string[] = [];
+  private _subscriptionEventFilters: string[] = [];
   private _sessions: Session[];
   private _webphoneRegistered: boolean;
   private _callControlNotificationReady: boolean;
@@ -177,12 +177,8 @@ export class RingCentralCall extends EventEmitter {
   }
 
   _getSessionFromWebphoneSession(webphoneSession: WebPhoneSession) {
-    // @ts-ignore
-    let telephonySessionId = webphoneSession.__rc_telephony_session_id;
-    if (!telephonySessionId) {
-      const [partyData] = extractHeadersData(webphoneSession.request.headers);
-      telephonySessionId = partyData && partyData.sessionId;
-    }
+    const [partyData] = extractHeadersData(webphoneSession.request.headers);
+    const telephonySessionId = partyData && partyData.sessionId;
 
     if (telephonySessionId) {
       return this.sessions.find(
@@ -308,7 +304,7 @@ export class RingCentralCall extends EventEmitter {
     this._callControl.on('initialized', this._onCallControlInitialized);
   }
 
-  _handleSubscription() {
+  async _handleSubscription() {
     if (this._subscriptions) {
       this._subscription = this._subscriptions.createSubscription();
       // @ts-ignore
@@ -318,10 +314,10 @@ export class RingCentralCall extends EventEmitter {
     } else {
       throw new Error('Init Error: subscriptions instance is required');
     }
-    const cachedSubscriptionData = this._sdk
+    const cachedSubscriptionData = await this._sdk
       .cache()
       .getItem(this._subscriptionCacheKey);
-    this._subscriotionEventFilters = [
+    this._subscriptionEventFilters = [
       '/restapi/v1.0/account/~/extension/~/telephony/sessions',
     ];
     if (cachedSubscriptionData) {
@@ -329,10 +325,10 @@ export class RingCentralCall extends EventEmitter {
         this._subscription.setSubscription(cachedSubscriptionData); // use the cache
       } catch (e) {
         console.error('Cannot set subscription from cache data', e);
-        this._subscription.setEventFilters(this._subscriotionEventFilters);
+        this._subscription.setEventFilters(this._subscriptionEventFilters);
       }
     } else {
-      this._subscription.setEventFilters(this._subscriotionEventFilters);
+      this._subscription.setEventFilters(this._subscriptionEventFilters);
     }
     this._subscription.on(
       this._subscription.events.subscribeSuccess,
@@ -379,7 +375,7 @@ export class RingCentralCall extends EventEmitter {
         if (loggedIn) {
           this._subscription
             .reset()
-            .setEventFilters(this._subscriotionEventFilters)
+            .setEventFilters(this._subscriptionEventFilters)
             .register();
         }
       });
@@ -395,7 +391,7 @@ export class RingCentralCall extends EventEmitter {
         if (loggedIn) {
           this._subscription
             .reset()
-            .setEventFilters(this._subscriotionEventFilters)
+            .setEventFilters(this._subscriptionEventFilters)
             .register();
         }
       });
@@ -495,10 +491,16 @@ export class RingCentralCall extends EventEmitter {
     if (!this.webphoneRegistered) {
       throw new Error('Webphone instance is not unregistered now.');
     }
+    const session = this.sessions.find(s => s.id === activeCall.telephonySessionId);
+    if (!session) {
+      throw new Error('Telephony Session isn\'t existed.');
+    }
+    if (session.webphoneSession) {
+      throw new Error('The call is in current instance');
+    }
     this._webphoneInviteFromSDK = true;
     const webphoneSession = this.webphone.userAgent.switchFrom(activeCall, options);
-    // @ts-ignore
-    webphoneSession.__rc_telephony_session_id = activeCall.telephonySessionId;
+    session.setWebphoneSession(webphoneSession);
     this._webphoneInviteFromSDK = false;
     return this._onWebPhoneSessionInvite(webphoneSession);
   }
