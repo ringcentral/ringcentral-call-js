@@ -1,10 +1,12 @@
 $(function() {
   var rcsdk = null;
   var platform = null;
+  var subscriptions = null;
   var loggedIn = false;
   var rcWebPhone = null;
   var rcCall = null;
   var redirectUri = getRedirectUri();
+  var defaultClientId = '';
 
   var $app = $('#app');
   var $authFlowTemplate = $('#template-auth-flow');
@@ -25,23 +27,24 @@ $(function() {
     return $($tpl.html());
   }
 
-  function initCallSDK({ appKey }) {
-    return platform.post('/client-info/sip-provision', {
+  function initCallSDK({ clientId }) {
+    return platform.post('/restapi/v1.0/client-info/sip-provision', {
       sipInfo: [{transport: 'WSS'}]
-    }).then(function(res) {
-      var sipProvision = res.json();
+    }).then(function (res) {
+      return res.json()
+    }).then(function(sipProvision) {
       rcWebPhone = new RingCentral.WebPhone(sipProvision, {
-        appKey,
+        clientId,
         appName: 'RingCentral Call Demo',
         appVersion: '0.0.1',
-        logLevel: 2,
+        logLevel: 2
       });
       window.addEventListener('unload', function () {
         if (rcWebPhone) {
           rcWebPhone.userAgent.stop();
         }
       });
-      rcCall = new RingCentralCall({ webphone: rcWebPhone, sdk: rcsdk })
+      rcCall = new RingCentralCall({ webphone: rcWebPhone, sdk: rcsdk, subscriptions })
       window.rcCall = rcCall
     });
   }
@@ -72,7 +75,8 @@ $(function() {
     function refreshFromNumbers() {
       $fromNumberSelect.empty();
       platform.get('/restapi/v1.0/account/~/extension/~/phone-number').then(function (response) {
-        var data = response.json();
+        return response.json();
+      }).then(function (data) {
         var phoneNumbers = data.records;
         phoneNumbers.filter(function(p) {
           return (p.features && p.features.indexOf('CallerId') !== -1) || (p.usageType === 'ForwardedNumber' && p.status === 'PortedIn');
@@ -215,6 +219,7 @@ $(function() {
     var $to = $modal.find('input[name=to]').eq(0);
     var $myStatus = $modal.find('input[name=myStatus]').eq(0);
     var $otherStatus = $modal.find('input[name=otherStatus]').eq(0);
+    var $switchBtn = $modal.find('.switch').eq(0);
 
     function refreshPartyInfo() {
       $from.val(session.from.phoneNumber);
@@ -279,17 +284,29 @@ $(function() {
       e.stopPropagation();
       var phoneNumber = $transfer.val();
       session.transfer(phoneNumber).then(function () {
-        console.log('transfered');
+        console.log('transfer success');
       }).catch(function(e) {
         console.error('transfer failed', e.stack || e);
       });
     });
     session.on('status', function() {
-      if (session.status === 'Disconnected') {
-        $modal.modal('hide');
-        return;
-      }
       refreshPartyInfo();
+    });
+    session.on('disconnected', function() {
+      $modal.modal('hide');
+    });
+    $switchBtn.css('display', 'inline-block');
+    if (session.webphoneSession) {
+      $switchBtn.css('display', 'none');
+    }
+    $switchBtn.on('click', function () {
+      $switchBtn.html('Switching')
+      rcCall.switchCall(session.id).finally(function () {
+        $switchBtn.html('Switch');
+      });
+    });
+    session.on('webphoneSessionConnected', function () {
+      $switchBtn.css('display', 'none');
     });
   }
 
@@ -347,34 +364,35 @@ $(function() {
         $modal.modal('hide');
         showCallControlModal(session);
       }
-    })
+    });
   }
 
-  function onLoginSuccess(server, appKey, appSecret) {
-    localStorage.setItem('rcCallControlServer', server || '');
-    localStorage.setItem('rcCallControlAppKey', appKey || '');
-    localStorage.setItem('rcCallControlAppSecret', appSecret || '');
-    initCallSDK({ appKey }).then(function () {
+  function onLoginSuccess(server, clientId) {
+    localStorage.setItem('rcCallDemoServer', server || '');
+    localStorage.setItem('rcCallDemoClientId', clientId || '');
+    initCallSDK({ clientId }).then(function () {
       showCallPage();
     });
   }
 
-  function show3LeggedLogin(server, appKey, appSecret) {
+  function show3LeggedLogin(server, clientId) {
     rcsdk = new RingCentral.SDK({
-      cachePrefix: 'rc-call',
-      appKey: appKey,
-      appSecret: appSecret,
+      cachePrefix: 'rc-call-demo',
+      clientId: clientId,
       server: server,
       redirectUri: redirectUri
     });
+    subscriptions = new RingCentral.Subscriptions({
+      sdk: rcsdk
+    });
 
-    platform = rcsdk.platform(server, appKey, appSecret);
+    platform = rcsdk.platform();
 
-    var loginUrl = platform.loginUrl({ implicit: !appSecret });
+    var loginUrl = platform.loginUrl({ usePKCE: true });
     platform.loggedIn().then(function(isLogin) {
       loggedIn = isLogin;
       if (loggedIn) {
-        onLoginSuccess(server, appKey, appSecret);
+        onLoginSuccess(server, clientId);
         return;
       }
       platform.loginWindow({ url: loginUrl })
@@ -382,7 +400,7 @@ $(function() {
           return platform.login(loginOptions);
         })
         .then(function() {
-          onLoginSuccess(server, appKey, appSecret);
+          onLoginSuccess(server, clientId);
         })
         .catch(function(e) {
           console.error(e.stack || e);
@@ -393,18 +411,16 @@ $(function() {
   function init() {
     var $authForm = cloneTemplate($authFlowTemplate);
     var $server = $authForm.find('input[name=server]').eq(0);
-    var $appKey = $authForm.find('input[name=appKey]').eq(0);
-    var $appSecret = $authForm.find('input[name=appSecret]').eq(0);
+    var $clientId = $authForm.find('input[name=clientId]').eq(0);
     var $redirectUri = $authForm.find('input[name=redirectUri]').eq(0);
-    $server.val(localStorage.getItem('rcCallControlServer') || RingCentral.SDK.server.sandbox);
-    $appKey.val(localStorage.getItem('rcCallControlAppKey') || '');
-    $appSecret.val(localStorage.getItem('rcCallControlAppSecret') || '');
+    $server.val(localStorage.getItem('rcCallDemoServer') || RingCentral.SDK.server.sandbox);
+    $clientId.val(localStorage.getItem('rcCallDemoClientId') || defaultClientId);
     $redirectUri.val(redirectUri);
 
     $authForm.on('submit', function(e) {
       e.preventDefault();
       e.stopPropagation();
-      show3LeggedLogin($server.val(), $appKey.val(), $appSecret.val());
+      show3LeggedLogin($server.val(), $clientId.val());
     });
 
     $app.empty().append($authForm);
