@@ -19,6 +19,8 @@ export class SessionDescriptionHandler {
 
 export class WebPhoneSession implements RealSession.WebPhoneSession {
   private _events: any;
+  private _localHold: boolean;
+  private __rc_direction: string;
 
   constructor({ id, toNumber, fromNumber, direction }) {
     // native sip fields
@@ -54,6 +56,7 @@ export class WebPhoneSession implements RealSession.WebPhoneSession {
     // mock events
     this._events = {};
     this.__rc_direction = direction;
+    this._localHold = false;
   }
 
   on(event, cb) {
@@ -61,7 +64,11 @@ export class WebPhoneSession implements RealSession.WebPhoneSession {
   }
 
   get localHold() {
-    return false;
+    return this._localHold;
+  }
+
+  setLocalHold(onHold) {
+    this._localHold = onHold;
   }
 
   trigger(event, ...args) {

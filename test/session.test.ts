@@ -417,6 +417,7 @@ describe('RingCentral Call :: Session', () => {
 
     test('should call unhold in webphoneSession', () => {
       webphoneSession.unhold = jest.fn();
+      webphoneSession.setLocalHold(true);
       session.unhold();
       expect(webphoneSession.unhold.mock.calls.length).toEqual(1);
     });
