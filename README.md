@@ -127,6 +127,27 @@ Firstly, we need to create [RingCentral JS SDK](https://github.com/ringcentral/r
 var rcCall = new RingCentralCall({ webphone: rcWebPhone, sdk: sdk });
 ```
 
+### Make a Call
+
+Switch a call from other device
+
+```js
+const session = await rcCall.makeCall({
+  type: 'webphone',
+  toNumber: 'phone number',
+  fromNumber: 'from number',
+})
+```
+
+### Switch Call
+
+Switch a call voice into current web phone instance from other devices
+
+```js
+const telephonySessionId = rcCall.sessions[0].id;
+const session = await rcCall.switchCall(telephonySessionId);
+```
+
 ### Events
 
 ### New call session event
@@ -162,18 +183,6 @@ var sessions = rcCall.sessions;
 ```
 
 ### Session API
-
-#### Start a call
-
-```js
-rcCall.makeCall({
-  type: 'webphone',
-  toNumber: 'phone number',
-  fromNumber: 'from number',
-}).then((session) => {
-  // ...
-})
-```
 
 #### Hangup a call
 
@@ -247,5 +256,4 @@ session.on('status', ({ party }) => {
 
 ## TODO
 
-- [ ] Call Switch
 - [ ] Conference Call Support
