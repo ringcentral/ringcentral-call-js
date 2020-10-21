@@ -3,10 +3,12 @@ import { Session } from './lib/Session';
 export class RingCentralCallControl {
   private _events: any;
   private _sessions: Session[];
+  private _ready: boolean;
 
   constructor() {
     this._events = {};
     this._sessions = [];
+    this._ready = false;
   }
 
   on(event, cb) {
@@ -47,5 +49,9 @@ export class RingCentralCallControl {
 
   onNotificationEvent() {
     
+  }
+
+  get ready() {
+    return this._ready;
   }
 }
