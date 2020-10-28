@@ -37,7 +37,7 @@ $(function() {
         clientId,
         appName: 'RingCentral Call Demo',
         appVersion: '0.0.1',
-        logLevel: 1
+        logLevel: 2
       });
       window.addEventListener('unload', function () {
         if (rcWebPhone) {
@@ -350,15 +350,11 @@ $(function() {
         console.error('forward failed', e.stack || e);
       });
     });
+    session.on('disconnected', function() {
+      $modal.modal('hide');
+    });
     var hasAnswered = false;
     session.on('status', function() {
-      if (
-        session.status === 'Disconnected' ||
-        session.status === 'VoiceMail'
-      ) {
-        $modal.modal('hide');
-        return;
-      }
       if (!hasAnswered && session.status === 'Answered') {
         hasAnswered = true;
         $modal.modal('hide');
