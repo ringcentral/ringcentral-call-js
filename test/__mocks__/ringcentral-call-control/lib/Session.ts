@@ -44,6 +44,10 @@ export class Session {
     this._events[event](...args);
   }
 
+  removeListener(event) {
+    delete this._events[event];
+  }
+
   get id() {
     return this._id;
   }

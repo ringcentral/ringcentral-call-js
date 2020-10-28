@@ -62,12 +62,10 @@ export class Session extends EventEmitter {
       this._startTime = (new Date(this._webphoneSession.startTime)).getTime();
     }
     this.webphoneSession.on('accepted', (incomingResponse) => {
-      console.log('accepted');
       this._setIdsFromWebPhoneSessionHeaders(incomingResponse.headers);
       this._status = PartyStatusCode.answered;
     });
     this.webphoneSession.on('progress', (incomingResponse) => {
-      console.log('progress...');
       this._setIdsFromWebPhoneSessionHeaders(incomingResponse.headers);
       this._status = PartyStatusCode.proceeding;
     });
@@ -94,10 +92,13 @@ export class Session extends EventEmitter {
     if(this._telephonySession.data.creationTime && !this._startTime) {
       this._startTime = (new Date(this._telephonySession.data.creationTime)).getTime();
     }
-    this.telephonySession.on('status', ({ party }) => {
+    const onStatusChange = ({ party }) => {
+      if (!this.telephonySession) {
+        return;
+      }
       const myParty = this.telephonySession.party;
       if (myParty) {
-        this._status = this.telephonySession.party.status.code;
+        this._status = myParty.status.code;
       }
       this.emit(events.STATUS, { party, status: this._status });
       if (
@@ -108,12 +109,15 @@ export class Session extends EventEmitter {
       ) {
         if (!this._webphoneSession) {
           this.emit(events.DISCONNECTED);
+          this._telephonySession.removeListener('status', onStatusChange);
           this._telephonySession = null;
           return;
         }
+        this._telephonySession.removeListener('status', onStatusChange);
         this._telephonySession = null;
       }
-    })
+    };
+    this.telephonySession.on('status', onStatusChange);
 
     this.telephonySession.on(events.RECORDINGS, ({ party }) => {
       this.emit(events.RECORDINGS, { party });
