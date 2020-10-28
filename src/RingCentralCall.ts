@@ -122,9 +122,6 @@ export class RingCentralCall extends EventEmitter {
       webphoneSession,
     });
     const onSessionDisconnected = () => {
-      if (newSession.telephonySession) {
-        return;
-      }
       this._onSessionDisconnected(newSession);
       newSession.removeListener(
         sessionEvents.DISCONNECTED,
@@ -203,9 +200,6 @@ export class RingCentralCall extends EventEmitter {
       telephonySession,
     });
     const onSessionDisconnected = () => {
-      if (session.webphoneSession) {
-        return;
-      }
       this._onSessionDisconnected(session);
       session.removeListener(sessionEvents.DISCONNECTED, onSessionDisconnected);
     };

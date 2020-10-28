@@ -37,7 +37,7 @@ $(function() {
         clientId,
         appName: 'RingCentral Call Demo',
         appVersion: '0.0.1',
-        logLevel: 2
+        logLevel: 1
       });
       window.addEventListener('unload', function () {
         if (rcWebPhone) {
