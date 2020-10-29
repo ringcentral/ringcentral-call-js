@@ -63,6 +63,10 @@ export class WebPhoneSession implements RealSession.WebPhoneSession {
     this._events[event] = cb;
   }
 
+  removeListener(event, cb) {
+    delete this._events[event];
+  }
+
   get localHold() {
     return this._localHold;
   }
