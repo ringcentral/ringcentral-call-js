@@ -54,7 +54,7 @@ export class Session extends EventEmitter {
 
   _onNewWebPhoneSession() {
     if (this._webphoneSession.request) {
-      this._setIdsFromWebPhoneSessionHeaders(this.webphoneSession.request.headers);
+      this._setIdsFromWebPhoneSessionHeaders(this._webphoneSession.request.headers);
     }
     // webphone session's start time should alway replace telephony session's start time, because it counts
     // start from call was answered, so will be more accurate
@@ -81,7 +81,7 @@ export class Session extends EventEmitter {
   _onWebphoneSessionTerminated = () => {
     this._status = PartyStatusCode.disconnected;
     this._cleanWebPhoneSession();
-    if (!this.telephonySession) {
+    if (!this._telephonySession) {
       this.emit(events.DISCONNECTED);
     }
   }
@@ -96,10 +96,10 @@ export class Session extends EventEmitter {
   }
 
   _onNewTelephonySession() {
-    this._telephonySessionId = this.telephonySession.id;
-    this._sessionId = this.telephonySession.data.sessionId;
-    if (this.telephonySession.party) {
-      this._status = this.telephonySession.party.status.code;
+    this._telephonySessionId = this._telephonySession.id;
+    this._sessionId = this._telephonySession.data.sessionId;
+    if (this._telephonySession.party) {
+      this._status = this._telephonySession.party.status.code;
     }
     if(this._telephonySession.data.creationTime && !this._startTime) {
       this._startTime = (new Date(this._telephonySession.data.creationTime)).getTime();
@@ -119,10 +119,10 @@ export class Session extends EventEmitter {
   }
 
   _onTelephonyStatusChange = ({ party }) => {
-    if (!this.telephonySession) {
+    if (!this._telephonySession) {
       return;
     }
-    const myParty = this.telephonySession.party;
+    const myParty = this._telephonySession.party;
     if (myParty) {
       this._status = myParty.status.code;
     }
@@ -202,6 +202,10 @@ export class Session extends EventEmitter {
     return this._telephonySessionId;
   }
 
+  get activeCallId() {
+    return this._activeCallId;
+  }
+
   get status() {
     return this._status;
   }
@@ -210,9 +214,9 @@ export class Session extends EventEmitter {
     if (this.party) {
       return this.party.direction;
     }
-    if (this.webphoneSession) {
+    if (this._webphoneSession) {
       // @ts-ignore
-      return this.webphoneSession.__rc_direction;
+      return this._webphoneSession.__rc_direction;
     }
   }
 
@@ -241,10 +245,10 @@ export class Session extends EventEmitter {
     if (this.party) {
       return this.party.from;
     }
-    if (this.webphoneSession) {
+    if (this._webphoneSession) {
       return {
-        phoneNumber: this.webphoneSession.request.from.uri.user,
-        name: this.webphoneSession.request.from.displayName,
+        phoneNumber: this._webphoneSession.request.from.uri.user,
+        name: this._webphoneSession.request.from.displayName,
       };
     }
     return {};
@@ -254,18 +258,18 @@ export class Session extends EventEmitter {
     if (this.party) {
       return this.party.to;
     }
-    if (this.webphoneSession) {
+    if (this._webphoneSession) {
       return {
-        phoneNumber: this.webphoneSession.request.to.uri.user,
-        name: this.webphoneSession.request.to.displayName,
+        phoneNumber: this._webphoneSession.request.to.uri.user,
+        name: this._webphoneSession.request.to.displayName,
       };
     }
     return {};
   }
 
   get data() {
-    if (this.telephonySession) {
-      return this.telephonySession.data;
+    if (this._telephonySession) {
+      return this._telephonySession.data;
     }
     return null;
   }
