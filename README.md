@@ -46,7 +46,7 @@ Use CDN scripts
 <script type="text/javascript" src="https://unpkg.com/@ringcentral/subscriptions@latest/dist/ringcentral-subscriptions.js"></script>
 <script type="text/javascript" src="https://unpkg.com/sip.js@0.13.5/dist/sip.js"></script>
 <script type="text/javascript" src="https://unpkg.com/ringcentral-web-phone@0.7.7/dist/ringcentral-web-phone.js"></script>
-<script type="text/javascript" src="https://unpkg.com/ringcentral-call@0.2.0/build/index.js"></script>
+<script type="text/javascript" src="https://unpkg.com/ringcentral-call@0.2.11/build/index.js"></script>
 ```
 
 ## Demo
