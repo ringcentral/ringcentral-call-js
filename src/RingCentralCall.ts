@@ -34,13 +34,15 @@ export interface ActiveCallInfo extends ActiveCallInfoBase {
   telephonySessionId: string;
 }
 
+export const SUBSCRIPTION_CACHE_KEY = 'rc-call-subscription-key';
+
 export class RingCentralCall extends EventEmitter {
   private _sdk: RingCentralSDK;
   private _subscriptions: RingCentralSubscriptions;
   private _webphone: RingCentralWebPhone;
   private _callControl: RingCentralCallControl;
   private _subscription: any;
-  private _subscriptionCacheKey: string = 'rc-call-subscription-key';
+  private _subscriptionCacheKey: string = SUBSCRIPTION_CACHE_KEY;
   private _subscriptionEventFilters: string[] = [];
   private _sessions: Session[];
   private _webphoneRegistered: boolean;

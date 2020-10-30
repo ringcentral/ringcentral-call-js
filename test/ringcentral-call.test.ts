@@ -1,13 +1,23 @@
-import { RingCentralCall, events } from '../src/RingCentralCall';
+import { RingCentralCall } from '../src/index';
+import { events, SUBSCRIPTION_CACHE_KEY } from '../src/RingCentralCall';
 import { directions, events as sessionEvents } from '../src/Session';
 import RingCentralWebPhone from './__mocks__/ringcentral-web-phone';
 import { WebPhoneSession } from './__mocks__/ringcentral-web-phone/lib/Session';
 import { Session as TelephonySession } from './__mocks__/ringcentral-call-control/lib/Session';
 import RingCentral from './__mocks__/ringcentral';
 import Subscriptions from './__mocks__/subscriptions';
+import { resolve } from 'path';
 
 let rcCall;
 let webphone;
+
+function timeout(ms) {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      resolve();
+    }, ms);
+  });
+}
 
 describe('RingCentral Call ::', () => {
   describe('Enable subscription', () => {
@@ -74,7 +84,7 @@ describe('RingCentral Call ::', () => {
       expect(hasError).toEqual(true);
     });
 
-    test('should make call successfull with web phone mode', async () => {
+    test('should make call successfully with web phone mode', async () => {
       webphone.userAgent.trigger('registered')
       const session = await rcCall.makeCall(
         { toNumber: '101', fromNumber: '102', type: 'webphone' }
@@ -166,6 +176,88 @@ describe('RingCentral Call ::', () => {
       webphone.userAgent.trigger('invite', webphoneSession);
       expect(rcCall.sessions.length).toEqual(1);
       expect(rcCall.sessions[0].webphoneSession).toEqual(webphoneSession);
+    });
+
+    test('should call switchCallFromActiveCall successfully', () => {
+      const telephonySession = new TelephonySession({
+        id: '123',
+        toNumber: '101',
+        fromNumber: '102',
+        direction: directions.INBOUND,
+      });
+      rcCall.callControl.trigger('new', telephonySession);
+      expect(rcCall.sessions.length).toEqual(1);
+      expect(rcCall.sessions[0].telephonySession).toEqual(telephonySession);
+      webphone.userAgent.trigger('registered');
+      const session = rcCall.switchCallFromActiveCall({
+        telephonySessionId: telephonySession.id,
+      });
+      expect(rcCall.sessions.length).toEqual(1);
+      expect(rcCall.sessions[0]).toEqual(session);
+    });
+
+    test('should call switchCallFromActiveCall fail when web phone not ready', () => {
+      const telephonySession = new TelephonySession({
+        id: '123',
+        toNumber: '101',
+        fromNumber: '102',
+        direction: directions.INBOUND,
+      });
+      rcCall.callControl.trigger('new', telephonySession);
+      expect(rcCall.sessions.length).toEqual(1);
+      expect(rcCall.sessions[0].telephonySession).toEqual(telephonySession);
+      let error;
+      try {
+        const session = rcCall.switchCallFromActiveCall({
+          telephonySessionId: telephonySession.id,
+        });
+      } catch (e) {
+        error = e.message;
+      }
+      expect(error).toEqual('Webphone instance is not unregistered now.');
+    });
+
+    test('should call switchCallFromActiveCall fail when not telephony session', () => {
+      expect(rcCall.sessions.length).toEqual(0);
+      webphone.userAgent.trigger('registered');
+      let error;
+      try {
+        const session = rcCall.switchCallFromActiveCall({
+          telephonySessionId: '1213',
+        });
+      } catch (e) {
+        error = e.message;
+      }
+      expect(error).toEqual('Telephony Session isn\'t existed.');
+    });
+
+    test('should call switchCallFromActiveCall fail when has web phone session', () => {
+      const telephonySession = new TelephonySession({
+        id: '123',
+        toNumber: '101',
+        fromNumber: '102',
+        direction: directions.INBOUND,
+      });
+      rcCall.callControl.trigger('new', telephonySession);
+      expect(rcCall.sessions.length).toEqual(1);
+      expect(rcCall.sessions[0].telephonySession).toEqual(telephonySession);
+      webphone.userAgent.trigger('registered');
+      const webphoneSession = new WebPhoneSession({
+        id: '123',
+        toNumber: '101',
+        fromNumber: '102',
+        direction: directions.INBOUND,
+      })
+      webphone.userAgent.trigger('invite', webphoneSession);
+      let error;
+      try {
+        const session = rcCall.switchCallFromActiveCall({
+          telephonySessionId: telephonySession.id,
+        });
+      } catch (e) {
+        error = e.message;
+      }
+      expect(error).toEqual('The call is in current instance');
     });
 
     test('should connect telephony session when call control get new event and existed session', () => {
@@ -272,6 +364,30 @@ describe('RingCentral Call ::', () => {
     });
   });
 
+  describe('Use cache subscription', () => {
+    let sdk;
+    let subscriptions;
+    beforeEach(async () => {
+      webphone = new RingCentralWebPhone(); // mocked
+      sdk = new RingCentral({}); // mocked
+      await sdk.cache().setItem(SUBSCRIPTION_CACHE_KEY, {});
+      subscriptions = new Subscriptions();
+    });
+
+    test('it should be initialized', async () => {
+      rcCall = new RingCentralCall({
+        webphone,
+        sdk,
+        subscriptions,
+      });
+      await timeout(100); // wait Subscription handled;
+      expect(rcCall.webphone).toEqual(webphone);
+      expect(!!rcCall.callControl).toEqual(true);
+      expect(rcCall.webphoneRegistered).toEqual(false);
+      expect(rcCall.callControlReady).toEqual(false);
+    });
+  });
+
   describe('No web phone instance', () => {
     beforeEach(() => {
       const sdk = new RingCentral({}); // mocked
@@ -292,6 +408,42 @@ describe('RingCentral Call ::', () => {
       expect(rcCall.sessions.length).toEqual(1);
       expect(session.direction).toEqual(directions.OUTBOUND);
       expect(!!session.telephonySession).toEqual(true);
+    });
+
+    test('should alert message when make call with webphone mode', async () => {
+      let error = null;
+      try {
+        const session = await rcCall.makeCall(
+          { toNumber: '101', type: 'webphone' }
+        );
+      } catch (e) {
+        error = e.message;
+      }
+      expect(error).toEqual('Web phone instance is required');
+    });
+
+    test('should call switchCallFromActiveCall fail when no web phone', () => {
+      let error;
+      try {
+        const session = rcCall.switchCallFromActiveCall({
+          telephonySessionId: '1213',
+        });
+      } catch (e) {
+        error = e.message;
+      }
+      expect(error).toEqual('Webphone instance is required.');
+    });
+
+    test('should call loadSessions successfully', () => {
+      const noError = true;
+      rcCall.loadSessions();
+      expect(noError).toEqual(true);
+    });
+
+    test('should call restoreSessions successfully', () => {
+      const noError = true;
+      rcCall.restoreSessions();
+      expect(noError).toEqual(true);
     });
   });
 
