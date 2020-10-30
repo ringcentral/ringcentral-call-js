@@ -54,4 +54,12 @@ export class RingCentralCallControl {
   get ready() {
     return this._ready;
   }
+
+  loadSessions() {
+
+  }
+
+  restoreSessions() {
+    
+  }
 }

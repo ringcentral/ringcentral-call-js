@@ -1,4 +1,4 @@
-class LocalStorage {
+class Cache {
   private store: any;
   constructor() {
     this.store = {};
@@ -8,15 +8,15 @@ class LocalStorage {
     this.store = {};
   }
 
-  getItem(key) {
+  async getItem(key) {
     return this.store[key] || null;
   }
 
-  setItem(key, value) {
+  async setItem(key, value) {
     this.store[key] = value;
   }
 
-  removeItem(key) {
+  async removeItem(key) {
     delete this.store[key];
   }
 
@@ -35,8 +35,11 @@ class LocalStorage {
 }
 
 export default class RingCentral {
+  private _cache: Cache;
+  private _platform: any;
+
   constructor() {
-    this._storage = new LocalStorage();
+    this._cache = new Cache();
     this._platform = {
       get() {
 
@@ -61,6 +64,6 @@ export default class RingCentral {
   }
 
   cache() {
-    return this._storage;
+    return this._cache;
   }
 }
