@@ -194,6 +194,19 @@ export class RingCentralCall extends EventEmitter {
     let session = this.sessions.find(
       (s) => s.telephonySessionId === telephonySession.id
     );
+    if (!session) {
+      // find if there are session from initializing web phone session.
+      const party = telephonySession.party;
+      if (party && party.direction === directions.OUTBOUND) {
+        session = this.sessions.find(
+          (s) => (
+            !s.telephonySessionId &&
+            s.to.phoneNumber === party.to.phoneNumber &&
+            s.direction === directions.OUTBOUND
+          )
+        );
+      }
+    }
     if (session) {
       session.setTelephonySession(telephonySession);
       return session;
