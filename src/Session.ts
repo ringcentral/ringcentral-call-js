@@ -129,9 +129,17 @@ export class Session extends EventEmitter {
     this.emit(events.STATUS, { party, status: this._status });
     if (
       myParty &&
-      myParty.status.code === PartyStatusCode.disconnected &&
-      myParty.status.reason !== 'Pickup' && // don't end when call switched
-      myParty.status.reason !== 'CallSwitch' // don't end when call switched
+      (
+        (
+          myParty.status.code === PartyStatusCode.disconnected &&
+          myParty.status.reason !== 'Pickup' && // don't end when call switched
+          myParty.status.reason !== 'CallSwitch' // don't end when call switched
+        ) ||
+        (
+          myParty.status.code === PartyStatusCode.gone &&
+          myParty.status.reason === 'AttendedTransfer'
+        )
+      )
     ) {
       this._cleanTelephonySession();
       if (!this._webphoneSession) {
