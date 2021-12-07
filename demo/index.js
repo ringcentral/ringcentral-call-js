@@ -94,12 +94,12 @@ $(function() {
           refreshCallList();
         });
       });
-      $('.modal').modal('hide');
+      $loadingModal.modal('hide');
     }
     if (rcCall.webphoneRegistered || rcCall.callControlReady) {
       onInitializedEvent();
     }
-    rcCall.on('webphone-registration-failed', onInitializedEvent);
+    rcCall.on('webphone-registered', onInitializedEvent);
     rcCall.on('call-control-ready', onInitializedEvent);
     if ($callType.val() === 'webphone') {
       $deviceRow.hide();
