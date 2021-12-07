@@ -269,6 +269,10 @@ export class RingCentralCall extends EventEmitter {
     );
   }
 
+  removeWebphone() {
+    this._clearWebphone();
+  }
+
   _clearWebphone() {
     if (!this._webphone) {
       return;
@@ -442,6 +446,7 @@ export class RingCentralCall extends EventEmitter {
   }
 
   onNotificationEvent = (msg) => {
+    // console.log(JSON.stringify(msg, null, 2));
     this._callControl.onNotificationEvent(msg);
   };
 

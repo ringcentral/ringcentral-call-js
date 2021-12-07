@@ -1,6 +1,6 @@
 {
   "name": "ringcentral-call",
-  "version": "0.2.13",
+  "version": "0.2.14",
   "main": "lib/index.js",
   "license": "MIT",
   "repository": {
@@ -20,7 +20,7 @@
     "test:showCoverage": "cat ./coverage/lcov.info | coveralls"
   },
   "peerDependencies": {
-    "ringcentral-call-control": "^0.2.4",
+    "ringcentral-call-control": "^0.2.6",
     "ringcentral-web-phone": "^0.8.3"
   },
   "devDependencies": {
@@ -32,7 +32,7 @@
     "coveralls": "^3.0.9",
     "http-server": "^0.12.3",
     "jest": "^25.4.0",
-    "ringcentral-call-control": "^0.2.4",
+    "ringcentral-call-control": "^0.2.6",
     "ringcentral-web-phone": "^0.8.3",
     "ts-jest": "^25.4.0",
     "ts-loader": "^5.3.3",
