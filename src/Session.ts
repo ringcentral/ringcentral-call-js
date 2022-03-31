@@ -352,10 +352,10 @@ export class Session extends EventEmitter {
     return this._telephonySession.forward(params);
   }
 
-  transfer(transferNumber: string, transferType='phoneNumber', transferOptions?: any) {
+  transfer(transferNumber: string, transferOptions={type: 'phoneNumber'}) {
     if (this._telephonySession) {
       const params : any = {};
-      params[transferType] = transferNumber;
+      params[transferOptions.type] = transferNumber;
 
       return this._telephonySession.transfer(params);
     }
