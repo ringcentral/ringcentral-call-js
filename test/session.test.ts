@@ -324,11 +324,18 @@ describe('RingCentral Call :: Session', () => {
       expect(telephonySession.forward.mock.calls[0][0].phoneNumber).toEqual('12345678901');
     });
 
-    test('should call transfer with extension number in telephonySession', () => {
+    test('should call transfer To voicemail in telephonySession', () => {
       telephonySession.transfer = jest.fn();
       session.transfer('102', {type: 'voicemail'});
       expect(telephonySession.transfer.mock.calls.length).toEqual(1);
       expect(telephonySession.transfer.mock.calls[0][0].voicemail).toEqual('102');
+    });
+
+    test('should call transfer with extension number in telephonySession', () => {
+      telephonySession.transfer = jest.fn();
+      session.transfer('102');
+      expect(telephonySession.transfer.mock.calls.length).toEqual(1);
+      expect(telephonySession.transfer.mock.calls[0][0].extensionNumber).toEqual('102');
     });
 
     test('should call transfer with phone number in telephonySession', () => {
