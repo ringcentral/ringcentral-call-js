@@ -326,9 +326,9 @@ describe('RingCentral Call :: Session', () => {
 
     test('should call transfer with extension number in telephonySession', () => {
       telephonySession.transfer = jest.fn();
-      session.transfer('102');
+      session.transfer('102', {type: 'voicemail'});
       expect(telephonySession.transfer.mock.calls.length).toEqual(1);
-      expect(telephonySession.transfer.mock.calls[0][0].extensionNumber).toEqual('102');
+      expect(telephonySession.transfer.mock.calls[0][0].voicemail).toEqual('102');
     });
 
     test('should call transfer with phone number in telephonySession', () => {
