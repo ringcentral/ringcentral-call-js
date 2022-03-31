@@ -229,7 +229,7 @@ session.forward('forward number').then(...)
 #### Transfer a call
 
 ```js
-session.forward('transfer number').then(...)
+session.transfer('transfer number').then(...)
 ```
 
 #### Mute a call
