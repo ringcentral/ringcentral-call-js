@@ -1,12 +1,15 @@
 import { EventEmitter } from 'events';
-import { WebPhoneSession } from 'ringcentral-web-phone/lib/session';
 import {
-  Session as TelephonySession,
   PartyStatusCode,
   ReplyWithTextParams,
+  Session as TelephonySession,
 } from 'ringcentral-call-control/lib/Session';
+import { WebPhoneSession } from 'ringcentral-web-phone/lib/session';
 
-import { extractHeadersData, getWebphoneReplyMessageOption } from './utils'
+import {
+  extractHeadersData,
+  getWebphoneReplyMessageOption,
+} from './utils';
 
 export enum events {
   DISCONNECTED ='disconnected',
@@ -364,6 +367,18 @@ export class Session extends EventEmitter {
     }
     // @ts-ignore
     return this._webphoneSession.transfer(transferNumber, transferOptions);
+  }
+
+  bridge(session: any) {
+    if (this._telephonySession) {
+      const params : any = {};
+        params.telephonySessionId = session.telephonySessionId;
+        params.partyId = session.partyId;
+      return this._telephonySession.bridge(params);
+    }
+    if (this._webphoneSession) {
+      return this._webphoneSession.warmTransfer(session);
+    }
   }
 
   park() {
