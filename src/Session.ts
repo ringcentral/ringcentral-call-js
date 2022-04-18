@@ -369,16 +369,11 @@ export class Session extends EventEmitter {
     return this._webphoneSession.transfer(transferNumber, transferOptions);
   }
 
-  bridge(session: any) {
+  warmTransfer(newSession: Session) {
     if (this._telephonySession) {
-      const params : any = {};
-        params.telephonySessionId = session.telephonySessionId;
-        params.partyId = session.partyId;
-      return this._telephonySession.bridge(params);
+      return this._telephonySession.bridge({telephonySessionId:newSession.telephonySessionId, partyId:newSession.party.id});
     }
-    if (this._webphoneSession) {
-      return this._webphoneSession.warmTransfer(session);
-    }
+    return this._webphoneSession.warmTransfer(newSession.webphoneSession);
   }
 
   park() {
