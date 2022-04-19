@@ -1,7 +1,18 @@
-import { Session, directions, events } from '../src/Session';
-import { WEBPHONE_REPLY_TYPE, WEBPHONE_REPLY_TIMEUNIT } from '../src/utils';
+import {
+  directions,
+  events,
+  Session,
+} from '../src/Session';
+import {
+  WEBPHONE_REPLY_TIMEUNIT,
+  WEBPHONE_REPLY_TYPE,
+} from '../src/utils';
+import {
+  PartyStatusCode,
+  ReplyWithPattern,
+  Session as TelephonySession,
+} from './__mocks__/ringcentral-call-control/lib/Session';
 import { WebPhoneSession } from './__mocks__/ringcentral-web-phone/lib/Session';
-import { Session as TelephonySession, PartyStatusCode, ReplyWithPattern } from './__mocks__/ringcentral-call-control/lib/Session';
 
 describe('RingCentral Call :: Session', () => {
   describe('Initialize', () => {
@@ -345,6 +356,23 @@ describe('RingCentral Call :: Session', () => {
       expect(telephonySession.transfer.mock.calls[0][0].phoneNumber).toEqual('12345678901');
     });
 
+    test('should complete transfer with telephony session', () => {
+      telephonySession.bridge = jest.fn();
+      const  newTelephonySession = new TelephonySession({
+        id: '123123',
+        status: PartyStatusCode.proceeding,
+        fromNumber: '103',
+        toNumber: '104',
+        direction: directions.OUTBOUND,
+      });
+      const newSession = new Session({
+        telephonySession: newTelephonySession,
+      });
+
+      session.warmTransfer(newSession);
+      expect(telephonySession.bridge.mock.calls.length).toEqual(1);
+    });
+
     test('should call park in telephonySession', () => {
       telephonySession.park = jest.fn();
       session.park();
@@ -514,6 +542,19 @@ describe('RingCentral Call :: Session', () => {
       webphoneSession.flip = jest.fn();
       session.flip({ callFlipId: '123' });
       expect(webphoneSession.flip.mock.calls.length).toEqual(1);
+    });
+
+    test('should complete transfer with webphone session', () => {
+      webphoneSession.warmTransfer = jest.fn();
+      const newWebPhoneSession = new WebPhoneSession({
+            id: '123123',
+            fromNumber: '103', 
+            toNumber: '104',
+            direction: directions.OUTBOUND
+          });
+          
+      session.warmTransfer(newWebPhoneSession);
+      expect(webphoneSession.warmTransfer.mock.calls.length).toEqual(1);
     });
 
     test('should call mute in webphoneSession', () => {
