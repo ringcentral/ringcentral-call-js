@@ -129,7 +129,7 @@ export class Session extends EventEmitter {
     if (myParty) {
       this._status = myParty.status.code;
     }
-    this.emit(events.STATUS, { party, status: this._status });
+    this.emit(events.STATUS, { party, telephonySessionId: this.telephonySessionId, status: this._status });
     if (
       myParty &&
       (

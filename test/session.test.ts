@@ -160,10 +160,12 @@ describe('RingCentral Call :: Session', () => {
   describe('Telephony status changed', () => {
     let session;
     let telephonySession;
+    const defaultTelephonySessionId = '123';
+    const defaultTelephonyStatus = PartyStatusCode.proceeding;
     beforeEach(() => {
       telephonySession = new TelephonySession({
-        id: '123',
-        status: PartyStatusCode.proceeding,
+        id: defaultTelephonySessionId,
+        status: defaultTelephonyStatus,
         fromNumber: '101',
         toNumber: '102',
         direction: directions.OUTBOUND,
@@ -173,13 +175,20 @@ describe('RingCentral Call :: Session', () => {
       });
     });
 
-    test('should update status successfully', () => {
+    test('should trigger update status event with correct params successfully', () => {
       let emited = false;
-      session.on(events.STATUS, () => {
+      let eventParams;
+      session.on(events.STATUS, (params) => {
+        eventParams = params
         emited = true;
       });
       telephonySession.trigger('status', { party: {} });
-      expect(emited).toEqual(true);
+      expect(eventParams).toEqual({
+        party: {},
+        status: defaultTelephonyStatus,
+        telephonySessionId: defaultTelephonySessionId,
+      });
+      
     });
 
     test('should update recordings successfully', () => {
