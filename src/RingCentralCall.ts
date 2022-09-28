@@ -56,7 +56,6 @@ export interface IPickUpCallParams {
   sessionDescriptionHandlerOptions:  { 
     constraints?: { audio: boolean, video: boolean }
   }
-  ;
 }
 
 export const SUBSCRIPTION_CACHE_KEY = 'rc-call-subscription-key';
@@ -172,8 +171,8 @@ export class RingCentralCall extends EventEmitter {
     };
     this._webphoneInviteFromSDK = true;
     const webphoneSession =
-    this._webphone &&
-    this._webphone.userAgent.invite(toNumber, inviteOptions);
+      this._webphone &&
+      this._webphone.userAgent.invite(toNumber, inviteOptions);
     session.setWebphoneSession(webphoneSession);
     this._webphoneInviteFromSDK = false;
     this.emit(events.WEBPHONE_INVITE_SENT, webphoneSession);
