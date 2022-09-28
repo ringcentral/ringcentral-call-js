@@ -582,8 +582,4 @@ describe('RingCentral Call ::', () => {
       expect(inviteSent).toBe(true);
     });
   });
-
-  describe('pickupInboundCall scenarios tests', () => {
-
-  })
 });
