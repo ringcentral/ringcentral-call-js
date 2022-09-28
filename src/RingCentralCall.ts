@@ -47,6 +47,8 @@ export interface ActiveCallInfo extends ActiveCallInfoBase {
   telephonySessionId: string;
 }
 
+
+type ConstraintsMedia = boolean | { deviceId: string; };
 export interface IPickUpCallParams {
   sessionId: string;
   toNumber: string;
@@ -54,7 +56,7 @@ export interface IPickUpCallParams {
   serverId: string;
   telephonySessionId: string;
   sessionDescriptionHandlerOptions:  { 
-    constraints?: { audio: boolean, video: boolean }
+    constraints?: { audio: ConstraintsMedia, video: ConstraintsMedia }
   }
 }
 
