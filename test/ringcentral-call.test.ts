@@ -1,12 +1,19 @@
 import { RingCentralCall } from '../src/index';
-import { events, SUBSCRIPTION_CACHE_KEY } from '../src/RingCentralCall';
-import { directions, events as sessionEvents } from '../src/Session';
+import {
+  events,
+  SUBSCRIPTION_CACHE_KEY,
+} from '../src/RingCentralCall';
+import {
+  directions,
+  events as sessionEvents,
+} from '../src/Session';
+import RingCentral from './__mocks__/ringcentral';
+import {
+  Session as TelephonySession,
+} from './__mocks__/ringcentral-call-control/lib/Session';
 import RingCentralWebPhone from './__mocks__/ringcentral-web-phone';
 import { WebPhoneSession } from './__mocks__/ringcentral-web-phone/lib/Session';
-import { Session as TelephonySession } from './__mocks__/ringcentral-call-control/lib/Session';
-import RingCentral from './__mocks__/ringcentral';
 import Subscriptions from './__mocks__/subscriptions';
-import { resolve } from 'path';
 
 let rcCall;
 let webphone;
@@ -17,6 +24,23 @@ function timeout(ms) {
       resolve();
     }, ms);
   });
+}
+
+const pickupCallParams = {
+  "fromNumber": "+18006245555",
+  "partyId": "p-a4a0d82341f0ez18381c9e55dz38b20000-2",
+  "serverId": "10.74.13.130.TAM",
+  "sessionId": "35063587004",
+  "telephonySessionId": "s-a4a0d82341f0ez18381c9e55dz38b20000",
+  "toNumber": "+18632152222",
+  "sessionDescriptionHandlerOptions": {
+      "constraints": {
+          "audio": {
+              "deviceId": "default"
+          },
+          "video": false
+      }
+  }
 }
 
 describe('RingCentral Call ::', () => {
@@ -84,6 +108,43 @@ describe('RingCentral Call ::', () => {
       expect(hasError).toEqual(true);
     });
 
+    test('should pickup call fail with web phone unregistered', async () => {
+      let hasError = false
+      try {
+        const session = await rcCall.pickupInboundCall(pickupCallParams);
+      } catch (e) {
+        hasError = true
+      }
+      expect(hasError).toEqual(true);
+    });
+
+    test('should pickup call fail when can not found rc call sessions', async () => {
+      webphone.userAgent.trigger('registered')
+      let hasError = false
+      try {
+        const session = await rcCall.pickupInboundCall(pickupCallParams);
+      } catch (e) {
+        hasError = true
+      }
+      expect(hasError).toEqual(true);
+    });
+
+
+    test('should pickup call succeed', async () => {
+      webphone.userAgent.trigger('registered');
+      const telephonySession = new TelephonySession({
+        id: pickupCallParams.telephonySessionId,
+        toNumber: pickupCallParams.toNumber,
+        fromNumber: pickupCallParams.fromNumber,
+        direction: directions.INBOUND,
+      });
+      rcCall.callControl.trigger('new', telephonySession);
+      expect(rcCall.sessions.length).toEqual(1);
+      expect(rcCall.sessions[0].webphoneSession).not.toBeDefined();
+      const session = await rcCall.pickupInboundCall(pickupCallParams);
+      expect(rcCall.sessions.length).toEqual(1);
+      expect(rcCall.sessions[0].webphoneSession).toBeDefined();
+    });
     test('should make call successfully with web phone mode', async () => {
       webphone.userAgent.trigger('registered')
       const session = await rcCall.makeCall(
@@ -422,6 +483,16 @@ describe('RingCentral Call ::', () => {
       expect(error).toEqual('Web phone instance is required');
     });
 
+    test('should alert message when pickup call without webphone mode', async () => {
+      let error = null;
+      try {
+        const session = await rcCall.pickupInboundCall(pickupCallParams);
+      } catch (e) {
+        error = e.message;
+      }
+      expect(error).toEqual('Web phone instance is required');
+    });
+
     test('should call switchCallFromActiveCall fail when no web phone', () => {
       let error;
       try {
@@ -511,4 +582,8 @@ describe('RingCentral Call ::', () => {
       expect(inviteSent).toBe(true);
     });
   });
+
+  describe('pickupInboundCall scenarios tests', () => {
+
+  })
 });

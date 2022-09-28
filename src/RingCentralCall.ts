@@ -1,13 +1,26 @@
 import { EventEmitter } from 'events';
-import { SDK as RingCentralSDK } from '@ringcentral/sdk';
-import { Subscriptions as RingCentralSubscriptions } from '@ringcentral/subscriptions';
+import {
+  Extension,
+  RingCentralCallControl,
+} from 'ringcentral-call-control';
 import RingCentralWebPhone from 'ringcentral-web-phone';
 import { WebPhoneSession } from 'ringcentral-web-phone/lib/session';
-import { InviteOptions, ActiveCallInfo as ActiveCallInfoBase } from 'ringcentral-web-phone/lib/userAgent';
-import { RingCentralCallControl, Extension } from 'ringcentral-call-control';
-import { Session, events as sessionEvents, directions } from './Session';
-import { USER_AGENT } from './userAgent';
+import {
+  ActiveCallInfo as ActiveCallInfoBase,
+  InviteOptions,
+} from 'ringcentral-web-phone/lib/userAgent';
 
+import { SDK as RingCentralSDK } from '@ringcentral/sdk';
+import {
+  Subscriptions as RingCentralSubscriptions,
+} from '@ringcentral/subscriptions';
+
+import {
+  directions,
+  events as sessionEvents,
+  Session,
+} from './Session';
+import { USER_AGENT } from './userAgent';
 import { extractHeadersData } from './utils';
 
 export interface MakeCallParams {
@@ -32,6 +45,18 @@ export enum events {
 
 export interface ActiveCallInfo extends ActiveCallInfoBase {
   telephonySessionId: string;
+}
+
+export interface IPickUpCallParams {
+  sessionId: string;
+  toNumber: string;
+  fromNumber: string;
+  serverId: string;
+  telephonySessionId: string;
+  sessionDescriptionHandlerOptions:  { 
+    constraints?: { audio: boolean, video: boolean }
+  }
+  ;
 }
 
 export const SUBSCRIPTION_CACHE_KEY = 'rc-call-subscription-key';
@@ -117,6 +142,42 @@ export class RingCentralCall extends EventEmitter {
       callParams
     );
     return this._onNewTelephonySession(telephonySession);
+  }
+
+  async pickupInboundCall({
+    sessionId,
+    toNumber,
+    fromNumber,
+    serverId,
+    telephonySessionId,
+    sessionDescriptionHandlerOptions
+  }: IPickUpCallParams) {
+    if (!this.webphone) {
+      throw new Error('Web phone instance is required');
+    }
+    if (!this.webphoneRegistered) {
+      throw new Error('webphone is not registered');
+    }
+    const session = this.sessions.find(s => s.id === telephonySessionId);
+    if (!session) {
+      throw new Error('call session was not found');
+    }
+    const extraHeaders = [
+      `RC-call-type: inbound-pickup; session-id: ${sessionId}; server-id: ${serverId}`,
+    ];
+    const inviteOptions = {
+      sessionDescriptionHandlerOptions,
+      fromNumber,
+      extraHeaders,
+    };
+    this._webphoneInviteFromSDK = true;
+    const webphoneSession =
+    this._webphone &&
+    this._webphone.userAgent.invite(toNumber, inviteOptions);
+    session.setWebphoneSession(webphoneSession);
+    this._webphoneInviteFromSDK = false;
+    this.emit(events.WEBPHONE_INVITE_SENT, webphoneSession);
+    return session;
   }
 
   _onNewWebPhoneSession(webphoneSession) {
