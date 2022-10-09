@@ -50,7 +50,9 @@ $(function() {
   }
 
   function showCallPage() {
-    $loadingModal.modal('show');
+    if (!rcCall.webphoneRegistered && !rcCall.callControlReady) {
+      $loadingModal.modal('show');
+    }
     $callPage = cloneTemplate($callTemplate);
     var $callType = $callPage.find('select[name=callType]').eq(0);
     var $deviceSelect = $callPage.find('select[name=device]').eq(0);
@@ -94,7 +96,10 @@ $(function() {
           refreshCallList();
         });
       });
-      $loadingModal.modal('hide');
+      // need to wait loading modal to rendered then hide it
+      setTimeout(function() {
+        $loadingModal.modal('hide');
+      }, 2000);
     }
     if (rcCall.webphoneRegistered || rcCall.callControlReady) {
       onInitializedEvent();
