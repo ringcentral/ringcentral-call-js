@@ -82,7 +82,7 @@ export class Session extends EventEmitter {
   }
 
   _onWebphoneSessionTerminated = () => {
-    this._status = PartyStatusCode.disconnected;
+    // this._status = PartyStatusCode.disconnected;
     this._cleanWebPhoneSession();
     if (!this._telephonySession) {
       this.emit(events.DISCONNECTED);
