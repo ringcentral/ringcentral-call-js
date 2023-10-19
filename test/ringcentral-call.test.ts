@@ -199,7 +199,7 @@ describe('RingCentral Call ::', () => {
         toNumber: '101',
         fromNumber: '102',
         direction: directions.INBOUND,
-      })
+      });
       expect(rcCall.sessions.length).toEqual(0);
       webphone.userAgent.trigger('invite', webphoneSession);
       expect(rcCall.sessions.length).toEqual(1);
@@ -207,14 +207,113 @@ describe('RingCentral Call ::', () => {
     });
 
     test('should add new session when call control get new event and not existed session', () => {
-      const telphonySession = new TelephonySession({
+      const telephonySession = new TelephonySession({
         id: '123',
         toNumber: '101',
         fromNumber: '102',
         direction: directions.INBOUND,
-      })
+      });
       expect(rcCall.sessions.length).toEqual(0);
-      rcCall.callControl.trigger('new', telphonySession);
+      rcCall.callControl.trigger('new', telephonySession);
+      expect(rcCall.sessions.length).toEqual(1);
+    });
+
+    test('should add new session when call control get new event and existed session with same number', () => {
+      const webphoneSession = new WebPhoneSession({
+        id: '123',
+        toNumber: '101',
+        fromNumber: '102',
+        direction: directions.OUTBOUND,
+      });
+      webphoneSession.request.headers = null; // clear telephony session id in headers
+      webphone.userAgent.trigger('inviteSent', webphoneSession);
+      expect(rcCall.sessions.length).toEqual(1);
+      const telephonySession = new TelephonySession({
+        id: '123',
+        toNumber: '101',
+        fromNumber: '102',
+        direction: directions.OUTBOUND,
+      });
+      rcCall.callControl.trigger('new', telephonySession);
+      expect(rcCall.sessions.length).toEqual(1);
+    });
+
+    test('should add new session when call control get new event and existed session with different number', () => {
+      const webphoneSession = new WebPhoneSession({
+        id: '1234',
+        toNumber: '103',
+        fromNumber: '102',
+        direction: directions.OUTBOUND,
+      });
+      webphoneSession.request.headers = null; // clear telephony session id in headers
+      webphone.userAgent.trigger('inviteSent', webphoneSession);
+      expect(rcCall.sessions.length).toEqual(1);
+      const telephonySession = new TelephonySession({
+        id: '123',
+        toNumber: '101',
+        fromNumber: '102',
+        direction: directions.OUTBOUND,
+      });
+      rcCall.callControl.trigger('new', telephonySession);
+      expect(rcCall.sessions.length).toEqual(2);
+    });
+
+    test('should add new session when call control get new event and existed inbound session', () => {
+      const webphoneSession = new WebPhoneSession({
+        id: '1234',
+        toNumber: '103',
+        fromNumber: '101',
+        direction: directions.INBOUND,
+      });
+      webphoneSession.request.headers = null; // clear telephony session id in headers
+      webphone.userAgent.trigger('inviteSent', webphoneSession);
+      expect(rcCall.sessions.length).toEqual(1);
+      const telephonySession = new TelephonySession({
+        id: '123',
+        toNumber: '101',
+        fromNumber: '102',
+        direction: directions.OUTBOUND,
+      });
+      rcCall.callControl.trigger('new', telephonySession);
+      expect(rcCall.sessions.length).toEqual(2);
+    });
+
+    test('should add new session when call control get new event and existed session with telephony session id', () => {
+      const webphoneSession = new WebPhoneSession({
+        id: '1234',
+        toNumber: '103',
+        fromNumber: '101',
+        direction: directions.OUTBOUND,
+      });
+      webphone.userAgent.trigger('inviteSent', webphoneSession);
+      expect(rcCall.sessions.length).toEqual(1);
+      const telephonySession = new TelephonySession({
+        id: '123',
+        toNumber: '101',
+        fromNumber: '102',
+        direction: directions.OUTBOUND,
+      });
+      rcCall.callControl.trigger('new', telephonySession);
+      expect(rcCall.sessions.length).toEqual(2);
+    });
+
+    test('should add new session when call control get new event and existed conference session', () => {
+      const webphoneSession = new WebPhoneSession({
+        id: '123',
+        toNumber: 'conf_121sss',
+        fromNumber: '102',
+        direction: directions.OUTBOUND,
+      });
+      webphoneSession.request.headers = null; // clear telephony session id in headers
+      webphone.userAgent.trigger('inviteSent', webphoneSession);
+      expect(rcCall.sessions.length).toEqual(1);
+      const telephonySession = new TelephonySession({
+        id: '123',
+        toNumber: 'conference',
+        fromNumber: '102',
+        direction: directions.OUTBOUND,
+      });
+      rcCall.callControl.trigger('new', telephonySession);
       expect(rcCall.sessions.length).toEqual(1);
     });
 

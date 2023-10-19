@@ -252,7 +252,7 @@ export class RingCentralCall extends EventEmitter {
     );
   }
 
-  _onNewTelephonySession = (telephonySession, fromPreload = false) => {
+  _getSessionFromTelephonySession(telephonySession) {
     let session = this.sessions.find(
       (s) => s.telephonySessionId === telephonySession.id
     );
@@ -261,14 +261,26 @@ export class RingCentralCall extends EventEmitter {
       const party = telephonySession.party;
       if (party && party.direction === directions.OUTBOUND) {
         session = this.sessions.find(
-          (s) => (
-            !s.telephonySessionId &&
-            s.to.phoneNumber === party.to.phoneNumber &&
-            s.direction === directions.OUTBOUND
-          )
+          (s) => {
+            if (s.telephonySessionId) {
+              return false;
+            }
+            if (s.direction !== directions.OUTBOUND) {
+              return false
+            }
+            if (party.to.phoneNumber === 'conference') {
+              return s.to.phoneNumber && s.to.phoneNumber.indexOf('conf_') === 0;
+            }
+            return s.to.phoneNumber === party.to.phoneNumber;
+          }
         );
       }
     }
+    return session;
+  }
+
+  _onNewTelephonySession = (telephonySession, fromPreload = false) => {
+    let session = this._getSessionFromTelephonySession(telephonySession);
     if (session) {
       session.setTelephonySession(telephonySession);
       return session;
