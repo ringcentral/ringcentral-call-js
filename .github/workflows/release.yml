@@ -4,23 +4,24 @@ on:
   push:
     tags:
       - "**.**.**"
+permissions:
+  contents: read
+  id-token: write
 
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
       - name: Setup Node.js
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v4
         with:
-          node-version: '14.x'
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
       - run: yarn
       - run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
       - run: npm version $VERSION --git-tag-version=false --allow-same-version
       - run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
