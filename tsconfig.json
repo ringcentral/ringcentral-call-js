@@ -9,7 +9,8 @@
     "declaration": true,
     "outDir": "lib",
     "esModuleInterop": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "skipLibCheck": true
   },
   "files": ["src/index.ts", "src/Session.ts", "src/RingCentralCall.ts", "src/userAgent.ts"],
   "compileOnSave": true
