@@ -3952,9 +3952,9 @@ v8-to-istanbul@^9.0.1:
     convert-source-map "^2.0.0"
 
 vm2@^3.9.8:
-  version "3.10.1"
-  resolved "https://registry.yarnpkg.com/vm2/-/vm2-3.10.1.tgz#f06e263a21f4802bf6dc2bbacf8d3b702d999d67"
-  integrity sha512-5VKPEiEzLPiIKxfHoGoafr1yL5PKeALbbwwYhiwyEgWmslnao7e1UxKGL93ekGGt45ETs+zFB0tTYLADzCWH8g==
+  version "3.10.3"
+  resolved "https://registry.yarnpkg.com/vm2/-/vm2-3.10.3.tgz#451e5d6e74bc4ec9c95d3a4b378bb9e174a682fa"
+  integrity sha512-zJyUr2FPAj/jmnaHNPNX494wDvPzl3pnmmvxAqVJESQTd5wAju6n8nXiFVfCZXlCTRamR6N3lCJOdv6dM559mQ==
   dependencies:
     acorn "^8.14.1"
     acorn-walk "^8.3.4"
